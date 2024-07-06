@@ -5,6 +5,7 @@ compatibility_date = "2023-12-01"
 DATABASE_URL=""
 JWT_SECRET=""
 
+
 # [[kv_namespaces]]
 # binding = "MY_KV_NAMESPACE"
 # id = "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"

@@ -19,17 +19,19 @@ const blogRouter = new Hono<{
 
 //middleware to verify the jwt token
 blogRouter.use("/*", async (c, next) => {
-  const authHeader = c.req.header("authorization") || "";
-  // header format is in format Bearer <token>
-  const token = authHeader.split(" ")[1];
-
-  const user = await verify(token, c.env.JWT_SECRET);
-  if (user) {
-    c.set("userId", user.id as string);
-    await next();
-  } else {
-    c.status(403);
-    return c.json({ message: "You Are Not Logged In" });
+  try {
+    const authHeader = c.req.header("authorization") || "";
+    const user = await verify(authHeader, c.env.JWT_SECRET);
+    if (user) {
+      c.set("userId", user.id as string);
+      await next();
+    } else {
+      c.status(401);
+      return c.json({ message: "Invalid token" });
+    }
+  } catch (error) {
+    c.status(401);
+    return c.json({ message: "Invalid or expired token" });
   }
 });
 
@@ -103,7 +105,22 @@ blogRouter.get("/bulk", async (c) => {
   const prisma = new PrismaClient({
     datasourceUrl: c.env.DATABASE_URL,
   }).$extends(withAccelerate());
-  const blogs = await prisma.blog.findMany();
+  const blogs = await prisma.blog.findMany({
+    select: {
+      id: true,
+      title: true,
+      content: true,
+      author: {
+        select: {
+          name: true,
+        },
+      },
+      createdAt: true,
+    },
+    orderBy: {
+      createdAt: "desc",
+    },
+  });
   return c.json({ blogs });
 });
 
@@ -121,6 +138,17 @@ blogRouter.get("/:id", async (c) => {
     const blog = await prisma.blog.findUnique({
       where: {
         id,
+      },
+      select: {
+        id: true,
+        title: true,
+        content: true,
+        author: {
+          select: {
+            name: true,
+          },
+        },
+        createdAt: true,
       },
     });
     return c.json({ blog });

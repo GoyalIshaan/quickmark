@@ -25,20 +25,6 @@ type User = {
 
 const FIVE_DAYS_FROM_NOW = Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 5;
 
-const TokenGenerator = async (
-  user: User,
-  secretKey: string
-): Promise<string> => {
-  const payload = {
-    id: user.id,
-    email: user.email,
-    role: "user",
-    exp: Math.floor(FIVE_DAYS_FROM_NOW),
-  };
-  const token = await sign(payload, secretKey);
-  return token;
-};
-
 // @desc Create a user
 // @route POST /api/v1/signup
 // @access Public
@@ -54,13 +40,13 @@ userRouter.post("/signup", async (c) => {
     try {
       const user: User | null = await prisma.user.create({
         data: {
+          name: body.name,
           email: body.email,
           password: body.password,
         },
       });
 
-      const jwt = await TokenGenerator(user, c.env.JWT_SECRET);
-
+      const jwt = await sign({ id: user.id }, c.env.JWT_SECRET);
       return c.json({ jwt });
     } catch (error) {
       c.status(403);
@@ -95,9 +81,9 @@ userRouter.post("/signin", async (c) => {
         return c.json({ message: "Invalid UserName / Password" });
       }
 
-      const jwt = await TokenGenerator(user, c.env.JWT_SECRET);
+      const token = await sign({ id: user.id }, c.env.JWT_SECRET);
 
-      return c.json({ jwt });
+      return c.json({ jwt: token, user: user });
     } catch (error) {
       c.status(403);
       return c.json({ message: "Invalid UserName / Password" });
