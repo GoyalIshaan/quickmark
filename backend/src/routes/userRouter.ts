@@ -94,4 +94,27 @@ userRouter.post("/signin", async (c) => {
   }
 });
 
+// @desc Get user
+// @route GET /api/v1/user/:id
+// @access Private
+userRouter.get("/:id", async (c) => {
+  const prisma = new PrismaClient({
+    datasourceUrl: c.env.DATABASE_URL,
+  }).$extends(withAccelerate());
+
+  const userId = c.req.param("id");
+  const user = await prisma.user.findUnique({
+    where: {
+      id: userId,
+    },
+  });
+
+  if (user) {
+    return c.json({ user });
+  } else {
+    c.status(404);
+    return c.json({ message: "User not found" });
+  }
+});
+
 export default userRouter;

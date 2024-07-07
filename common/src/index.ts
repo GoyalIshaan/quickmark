@@ -22,7 +22,14 @@ export const updateBlogInputSchema = zod.object({
   content: zod.string().optional(),
 });
 
+export const CommentInputSchema = zod.object({
+  id: zod.string().uuid(),
+  title: zod.string().max(75),
+  content: zod.string().min(10),
+});
+
 export type CreateBlogInput = zod.infer<typeof createBlogInputSchema>;
 export type UpdateBlogInput = zod.infer<typeof updateBlogInputSchema>;
 export type SignUpInput = zod.infer<typeof signUpInputSchema>;
 export type SignInInput = zod.infer<typeof signInInputSchema>;
+export type CommentInput = zod.infer<typeof CommentInputSchema>;

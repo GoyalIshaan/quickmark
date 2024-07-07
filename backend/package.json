@@ -5,7 +5,7 @@
     "deploy": "wrangler deploy --minify src/index.ts"
   },
   "dependencies": {
-    "@ishaan_goyal/quickmark-common": "^1.0.0",
+    "@ishaan_goyal/quickmark-common": "^1.0.4",
     "@prisma/client": "^5.16.1",
     "@prisma/extension-accelerate": "^1.1.0",
     "hono": "^4.4.11",

@@ -22,24 +22,32 @@ const Navbar: React.FC = () => {
           <div className="text-2xl font-bold text-black justify-start">
             <Link to="/">QuickMark</Link>
           </div>
-          <div className="hidden md:flex space-x-4">
+          <div className="hidden md:flex items-center space-x-4">
+            <Link
+              to="/blogs"
+              className="px-4 py-2 text-black hover:text-gray-800 transition duration-300"
+            >
+              Blogs
+            </Link>
+            <div className="h-6 border-l border-black"></div>
             <Link
               to="/create"
-              className="px-4 py-2 bg-black text-white rounded-md hover:bg-gray-800 transition duration-300"
+              className="px-4 py-2 text-black hover:text-gray-800 transition duration-300"
             >
               Create
             </Link>
+            <div className="h-6 border-l border-black"></div>
             {isLoggedIn ? (
               <Link
                 to="/profile"
-                className="px-4 py-2 bg-black text-white rounded-md hover:bg-gray-800 transition duration-300"
+                className="px-4 py-2 text-black hover:text-gray-800 transition duration-300"
               >
                 Profile
               </Link>
             ) : (
               <Link
                 to="/signin"
-                className="px-4 py-2 bg-black text-white rounded-md hover:bg-gray-800 transition duration-300"
+                className="px-4 py-2 text-black hover:text-gray-800 transition duration-300"
               >
                 Login
               </Link>
@@ -56,6 +64,13 @@ const Navbar: React.FC = () => {
         </div>
         {isMenuOpen && (
           <div className="mt-2 md:hidden">
+            <Link
+              to="/blogs"
+              className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+              onClick={toggleMenu}
+            >
+              Blogs
+            </Link>
             <Link
               to="/create"
               className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"

@@ -2,12 +2,9 @@ import { Hono } from "hono";
 import { PrismaClient } from "@prisma/client/edge";
 import { withAccelerate } from "@prisma/extension-accelerate";
 import { verify } from "hono/jwt";
-import {
-  createBlogInputSchema,
-  updateBlogInputSchema,
-} from "@ishaan_goyal/quickmark-common";
+import { CommentInputSchema } from "@ishaan_goyal/quickmark-common";
 
-const blogRouter = new Hono<{
+const commentRouter = new Hono<{
   Bindings: {
     DATABASE_URL: string;
     JWT_SECRET: string;
@@ -18,7 +15,7 @@ const blogRouter = new Hono<{
 }>();
 
 //middleware to verify the jwt token
-blogRouter.use("/*", async (c, next) => {
+commentRouter.use("/*", async (c, next) => {
   try {
     const authHeader = c.req.header("authorization") || "";
     const user = await verify(authHeader, c.env.JWT_SECRET);
@@ -35,55 +32,57 @@ blogRouter.use("/*", async (c, next) => {
   }
 });
 
-// @desc Create a Blog
-// @route POST /api/v1/blog
+// @desc Create a Comment
+// @route POST /api/v1/comment/
 // @access Private
-blogRouter.post("/", async (c) => {
+commentRouter.post("/", async (c) => {
   const prisma = new PrismaClient({
     datasourceUrl: c.env.DATABASE_URL,
   }).$extends(withAccelerate());
 
   try {
     const body = await c.req.json();
-    const { success } = createBlogInputSchema.safeParse(body);
+    const { success, error } = CommentInputSchema.safeParse(body);
     if (!success) {
       c.status(400);
-      return c.json({ message: "Invalid input" });
+      return c.json({ message: `Invalid Input ${error.issues}` });
     }
     const authorId = c.get("userId");
-    const blog = await prisma.blog.create({
+    const blogId = body.id;
+    const comment = await prisma.comment.create({
       data: {
         title: body.title,
         content: body.content,
         authorId,
+        blogId,
       },
     });
-    return c.json({ id: blog.id });
+    return c.json({ id: comment.id });
   } catch (error) {
     c.status(403);
     return c.json({ message: "Couldn't create the blog" });
   }
 });
 
-// @desc Edit a Blog
-// @route PUT /api/v1/blog
+// @desc Edit a Comment
+// @route PUT /api/v1/comment
 // @access Private
-blogRouter.put("/", async (c) => {
+commentRouter.put("/", async (c) => {
   const prisma = new PrismaClient({
     datasourceUrl: c.env.DATABASE_URL,
   }).$extends(withAccelerate());
 
   const body = await c.req.json();
-  const { success } = updateBlogInputSchema.safeParse(body);
+  const { success } = CommentInputSchema.safeParse(body);
   if (!success) {
     c.status(400);
     return c.json({ message: "Invalid input" });
   }
-
+  const commentId = body.id;
   try {
-    await prisma.blog.update({
+    await prisma.comment.update({
       where: {
-        id: body.id,
+        id: commentId,
       },
       data: {
         title: body.title,
@@ -91,71 +90,60 @@ blogRouter.put("/", async (c) => {
       },
     });
 
-    return c.json({ message: "Blog edited" });
+    return c.json({ message: "Comment edited" });
   } catch (error) {
     c.status(403);
-    return c.json({ message: "Couldn't edit the blog" });
+    return c.json({ message: "Couldn't edit the comment" });
   }
 });
 
-// @desc Get all Blogs
-// @route GET /api/v1/blog/bulk
-// @access Public
-blogRouter.get("/bulk", async (c) => {
-  const prisma = new PrismaClient({
-    datasourceUrl: c.env.DATABASE_URL,
-  }).$extends(withAccelerate());
-  const blogs = await prisma.blog.findMany({
-    select: {
-      id: true,
-      title: true,
-      content: true,
-      author: {
-        select: {
-          name: true,
-        },
-      },
-      createdAt: true,
-    },
-    orderBy: {
-      createdAt: "desc",
-    },
-  });
-  return c.json({ blogs });
-});
-
-// @desc Get a Blog
-// @route GET /api/v1/blog/:id
-// @access Public
-blogRouter.get("/:id", async (c) => {
+// @desc Delete a Comment
+// @route DELETE /api/v1/comment
+// @access Private
+commentRouter.delete("/", async (c) => {
   const prisma = new PrismaClient({
     datasourceUrl: c.env.DATABASE_URL,
   }).$extends(withAccelerate());
 
-  const id = c.req.param("id");
+  const body = await c.req.json();
+  const commentId = body.id;
 
   try {
-    const blog = await prisma.blog.findUnique({
+    await prisma.comment.delete({
       where: {
-        id,
-      },
-      select: {
-        id: true,
-        title: true,
-        content: true,
-        author: {
-          select: {
-            name: true,
-          },
-        },
-        createdAt: true,
+        id: commentId,
       },
     });
-    return c.json({ blog });
+
+    return c.json({ message: "Comment deleted" });
   } catch (error) {
     c.status(403);
-    return c.json({ message: "Couldn't get the blog" });
+    return c.json({ message: "Couldn't delete the comment" });
   }
 });
 
-export default blogRouter;
+// @desc Get all Comments of a Blog
+// @route GET /api/v1/comment/:blogId
+// @access Private
+commentRouter.get("/:blogId", async (c) => {
+  const prisma = new PrismaClient({
+    datasourceUrl: c.env.DATABASE_URL,
+  }).$extends(withAccelerate());
+
+  const blogId = c.req.param("blogId");
+
+  try {
+    const comments = await prisma.comment.findMany({
+      where: {
+        blogId,
+      },
+    });
+
+    return c.json({ comments });
+  } catch (error) {
+    c.status(403);
+    return c.json({ message: "Couldn't fetch the comments" });
+  }
+});
+
+export default commentRouter;
