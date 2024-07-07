@@ -117,4 +117,36 @@ userRouter.get("/:id", async (c) => {
   }
 });
 
+// @desc Update user
+// @route PUT /api/v1/user/:id
+// @access Private
+userRouter.put("/:userId", async (c) => {
+  const prisma = new PrismaClient({
+    datasourceUrl: c.env.DATABASE_URL,
+  }).$extends(withAccelerate());
+
+  const userId = c.req.param("userId");
+  const body = await c.req.json();
+  const duplicate = await prisma.user.findUnique({
+    where: { email: body.email },
+  });
+  if (duplicate) {
+    c.status(400);
+    return c.json({ message: "Email already exists" });
+  }
+  const user = await prisma.user.update({
+    where: {
+      id: userId,
+    },
+    data: {
+      name: body?.name,
+      email: body?.email,
+      password: body?.password,
+      updatedAt: new Date(),
+    },
+  });
+
+  return c.json({ user });
+});
+
 export default userRouter;

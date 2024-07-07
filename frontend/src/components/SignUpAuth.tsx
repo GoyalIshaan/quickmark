@@ -1,91 +1,120 @@
-import React from "react";
-import { useForm, SubmitHandler } from "react-hook-form";
-import { Link, useNavigate } from "react-router-dom";
+import { useState } from "react";
+import { motion } from "framer-motion";
+import { FaLock, FaLockOpen, FaSave } from "react-icons/fa";
+import { useForm, UseFormRegisterReturn } from "react-hook-form";
 import LabelledInput from "./LabelledInput";
-import { SignUpInput } from "@ishaan_goyal/quickmark-common";
-import axios from "axios";
-import { BACKEND_URL } from "../config";
 
-const SignUp: React.FC = () => {
-  const {
-    register,
-    handleSubmit,
-    formState: { errors },
-  } = useForm<SignUpInput>();
+type FormData = {
+  name: string;
+  email: string;
+  password: string;
+};
 
-  const navigate = useNavigate();
+const ProfilePage = () => {
+  const [isLocked, setIsLocked] = useState(true);
+  const { register, handleSubmit, watch } = useForm<FormData>({
+    defaultValues: {
+      name: "John Doe",
+      email: "john.doe@example.com",
+      password: "********",
+    },
+  });
 
-  const onSubmit: SubmitHandler<SignUpInput> = async (data) => {
-    console.log("Signing up:", data);
-    // Handle sign-up logic here
-    try {
-      const response = await axios.post(
-        `${BACKEND_URL}/api/v1/user/signup`,
-        data
-      );
-      const { jwt } = response.data;
-      localStorage.setItem("token", jwt);
-      navigate("/blogs");
-    } catch (error) {
-      console.error("Error signing up:", error);
-    }
+  const watchedFields = watch();
+
+  const handleToggleLock = () => {
+    setIsLocked(!isLocked);
+  };
+
+  const onSubmit = (data: FormData) => {
+    setIsLocked(true);
+    console.log("Saving profile:", data);
   };
 
   return (
-    <div className="h-screen flex justify-center items-center flex-col">
-      <div className="mb-4">
-        <div className="text-3xl font-extrabold text-center">
-          Create An Account
-        </div>
-        <div className="text-slate-400 text-center">
-          Already have an account?{" "}
-          <Link to="/signin" className="text-slate-600 underline">
-            Login
-          </Link>
-        </div>
-      </div>
-      <form
-        onSubmit={handleSubmit(onSubmit)}
-        className="w-full max-w-md space-y-4"
-      >
-        <LabelledInput
-          label="Username"
-          placeholder="Enter your username"
-          register={register("name", { required: "Username is required" })}
-        />
-        {errors.name && (
-          <p className="text-red-500 text-xs">{errors.name.message}</p>
-        )}
-
-        <LabelledInput
-          label="Email"
-          placeholder="Enter your email"
-          type="email"
-          register={register("email", { required: "Email is required" })}
-        />
-        {errors.email && (
-          <p className="text-red-500 text-xs">{errors.email.message}</p>
-        )}
-
-        <LabelledInput
-          label="Password"
-          placeholder="Enter your password"
-          type="password"
-          register={register("password", { required: "Password is required" })}
-        />
-        {errors.password && (
-          <p className="text-red-500 text-xs">{errors.password.message}</p>
-        )}
-
-        <button
-          type="submit"
-          className="bg-slate-950 w-full text-white font-bold py-2 px-4 rounded-md hover:bg-slate-800"
+    <div className="min-h-screen bg-black text-white flex items-center justify-center p-4">
+      <div className="w-full max-w-6xl flex flex-col md:flex-row gap-8">
+        {/* Left side - Input fields */}
+        <motion.form
+          className="w-full md:w-1/2 space-y-6"
+          initial={{ opacity: 0, x: -50 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.5 }}
+          onSubmit={handleSubmit(onSubmit)}
         >
-          Sign Up
-        </button>
-      </form>
+          <h1 className="text-3xl font-bold mb-6">Your Profile</h1>
+          <LabelledInput
+            label="Name"
+            placeholder="Enter your name"
+            register={register("name") as UseFormRegisterReturn}
+            type="text"
+          />
+          <LabelledInput
+            label="Email"
+            placeholder="Enter your email"
+            register={register("email") as UseFormRegisterReturn}
+            type="email"
+          />
+          <LabelledInput
+            label="Password"
+            placeholder="Enter your password"
+            register={register("password") as UseFormRegisterReturn}
+            type="password"
+          />
+          <div className="flex gap-4">
+            <motion.button
+              type="button"
+              onClick={handleToggleLock}
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              className="bg-blue-500 text-white px-4 py-2 rounded flex items-center gap-2"
+            >
+              {isLocked ? <FaLock /> : <FaLockOpen />}
+              {isLocked ? "Unlock" : "Lock"}
+            </motion.button>
+            {!isLocked && (
+              <motion.button
+                type="submit"
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                className="bg-green-500 text-white px-4 py-2 rounded flex items-center gap-2"
+              >
+                <FaSave />
+                Save
+              </motion.button>
+            )}
+          </div>
+        </motion.form>
+
+        {/* Right side - ID Card */}
+        <motion.div
+          className="w-full md:w-1/2 flex items-start justify-center"
+          initial={{ opacity: 0, x: 50 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.5 }}
+        >
+          <div className="bg-gradient-to-br from-gray-800 to-gray-900 p-6 rounded-lg shadow-lg w-full max-w-md">
+            <h2 className="text-2xl font-bold mb-4">ID Card</h2>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-gray-400">Name</label>
+                <p className="text-lg">{watchedFields.name}</p>
+              </div>
+              <div>
+                <label className="block text-gray-400">Email</label>
+                <p className="text-lg">{watchedFields.email}</p>
+              </div>
+              <div className="pt-4 border-t border-gray-700">
+                <p className="text-sm text-gray-400">
+                  Last updated: {new Date().toLocaleDateString()}
+                </p>
+              </div>
+            </div>
+          </div>
+        </motion.div>
+      </div>
     </div>
   );
 };
 
-export default SignUp;
+export default ProfilePage;

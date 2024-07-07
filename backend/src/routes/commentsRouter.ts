@@ -42,11 +42,11 @@ commentRouter.post("/", async (c) => {
 
   try {
     const body = await c.req.json();
-    const { success, error } = CommentInputSchema.safeParse(body);
-    if (!success) {
-      c.status(400);
-      return c.json({ message: `Invalid Input ${error.issues}` });
-    }
+    // const { success, error } = CommentInputSchema.safeParse(body);
+    // if (!success) {
+    //   c.status(400);
+    //   return c.json({ message: `Invalid Input ${error.issues}` });
+    // }
     const authorId = c.get("userId");
     const blogId = body.id;
     const comment = await prisma.comment.create({
@@ -98,15 +98,14 @@ commentRouter.put("/", async (c) => {
 });
 
 // @desc Delete a Comment
-// @route DELETE /api/v1/comment
+// @route DELETE /api/v1/comment/:id/
 // @access Private
-commentRouter.delete("/", async (c) => {
+commentRouter.delete("/:commentId/", async (c) => {
   const prisma = new PrismaClient({
     datasourceUrl: c.env.DATABASE_URL,
   }).$extends(withAccelerate());
 
-  const body = await c.req.json();
-  const commentId = body.id;
+  const commentId = c.req.param("commentId");
 
   try {
     await prisma.comment.delete({

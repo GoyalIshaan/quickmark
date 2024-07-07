@@ -158,4 +158,50 @@ blogRouter.get("/:id", async (c) => {
   }
 });
 
+// @desc Get a Blog By Its Author
+// @route GET /api/v1/blog/author/
+// @access Private
+blogRouter.get("/author/", async (c) => {
+  const prisma = new PrismaClient({
+    datasourceUrl: c.env.DATABASE_URL,
+  }).$extends(withAccelerate());
+
+  const authorId = c.get("userId");
+  try {
+    const blogs = await prisma.blog.findMany({
+      where: {
+        authorId,
+      },
+    });
+    return c.json({ blogs });
+  } catch (error) {
+    c.status(403);
+    return c.json({ message: "Couldn't get the blog" });
+  }
+});
+
+// @desc Delete a Blog
+// @route DELETE /api/v1/blog/:blogId
+// @access Private
+blogRouter.delete("/:blogId", async (c) => {
+  const prisma = new PrismaClient({
+    datasourceUrl: c.env.DATABASE_URL,
+  }).$extends(withAccelerate());
+
+  const blogId = c.req.param("blogId");
+
+  try {
+    await prisma.blog.delete({
+      where: {
+        id: blogId,
+      },
+    });
+
+    return c.json({ message: "Blog deleted" });
+  } catch (error) {
+    c.status(403);
+    return c.json({ message: "Couldn't delete the blog" });
+  }
+});
+
 export default blogRouter;

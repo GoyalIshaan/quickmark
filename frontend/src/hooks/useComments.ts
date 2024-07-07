@@ -1,7 +1,16 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import axios from "axios";
 import { BACKEND_URL } from "../config";
 import { CommentInput } from "@ishaan_goyal/quickmark-common";
+
+export interface Comment {
+  id: string;
+  title: string;
+  content: string;
+  blogId: string;
+  authorId: string;
+  createdAt: string;
+}
 
 interface PostCommentResult {
   loading: boolean;
@@ -15,44 +24,61 @@ interface PutCommentResult {
   error: string | null;
 }
 
-export interface Comment {
-  id: string;
-  title: string;
-  content: string;
-  blogId: string;
-  authorId: string;
-  createdAt: string;
-}
-
 interface getComment {
   loading: boolean;
   comments: Comment[];
+  refetchComments: () => void;
 }
 
-const usePostComment = (): PostCommentResult => {
+const useGetComment = ({ blogId }: { blogId: string }): getComment => {
+  const [loading, setLoading] = useState<boolean>(true);
+  const [comments, setComments] = useState<Comment[]>([]);
+
+  const getComments = useCallback(async () => {
+    try {
+      const response = await axios.get(
+        `${BACKEND_URL}/api/v1/comment/${blogId}`,
+        {
+          headers: {
+            Authorization: localStorage.getItem("token"),
+          },
+        }
+      );
+      setComments(response.data.comments);
+      setLoading(false);
+    } catch (error) {
+      console.error("Failed to fetch comments:", error);
+      setLoading(false);
+    }
+  }, [blogId]);
+
+  useEffect(() => {
+    getComments();
+  }, [getComments]);
+
+  return { loading, comments, refetchComments: getComments };
+};
+
+const usePostComment = (refetchComments: () => void): PostCommentResult => {
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
 
-  const postComment = async ({
-    id,
-    title,
-    content,
-  }: CommentInput): Promise<string> => {
+  const postComment = async ({ id, title, content }: CommentInput) => {
     setLoading(true);
     setError(null);
     try {
-      const token = localStorage.getItem("token");
-      const response = await axios.post(
+      await axios.post(
         `${BACKEND_URL}/api/v1/comment/`,
         { id, title, content },
         {
           headers: {
-            Authorization: token,
+            Authorization: localStorage.getItem("token"),
           },
         }
       );
       setLoading(false);
-      return response.data.id;
+      refetchComments();
+      return "Comment posted";
     } catch (error) {
       setLoading(false);
       setError("Couldn't post the Comment");
@@ -63,38 +89,7 @@ const usePostComment = (): PostCommentResult => {
   return { loading, postComment, error };
 };
 
-const useGetComment = ({ blogId }: { blogId: string }): getComment => {
-  const [loading, setLoading] = useState<boolean>(true);
-  const [comments, setComments] = useState<Comment[]>([]);
-
-  useEffect(() => {
-    const getComments = async () => {
-      await axios
-        .get(`${BACKEND_URL}/api/v1/comment/${blogId}`, {
-          headers: {
-            Authorization: localStorage.getItem("token"),
-          },
-        })
-        .then((res) => {
-          setComments(res.data.comments);
-          setLoading(false);
-        });
-    };
-    getComments();
-    console.log("blogId", blogId);
-  }, [blogId]);
-
-  if (comments === undefined) {
-    console.log("blog is undefined");
-    return {
-      loading,
-      comments: [],
-    };
-  }
-  return { loading, comments };
-};
-
-const useUpdateComment = (): PutCommentResult => {
+const useUpdateComment = (refetchComments: () => void): PutCommentResult => {
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -117,6 +112,7 @@ const useUpdateComment = (): PutCommentResult => {
         }
       );
       setLoading(false);
+      refetchComments();
       console.log("Edited the comment");
       return response.data.id;
     } catch (error) {
@@ -129,4 +125,25 @@ const useUpdateComment = (): PutCommentResult => {
   return { loading, updateComment, error };
 };
 
-export { usePostComment, useGetComment, useUpdateComment };
+const useDeleteComment = (refetchComments: () => void) => {
+  const deleteComment = async (commentId: string) => {
+    try {
+      const URL = `${BACKEND_URL}/api/v1/comment/${commentId}/`;
+      console.log("URL", URL);
+      await axios.delete(URL, {
+        headers: {
+          Authorization: localStorage.getItem("token"),
+        },
+      });
+      console.log("Comment deleted");
+      refetchComments();
+    } catch (error) {
+      console.error("Error deleting comment:", error);
+      throw error;
+    }
+  };
+
+  return { deleteComment };
+};
+
+export { usePostComment, useGetComment, useUpdateComment, useDeleteComment };

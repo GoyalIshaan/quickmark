@@ -4,13 +4,13 @@ import { Twitter, Instagram, Github } from "lucide-react";
 
 const Footer: React.FC = () => {
   const currentYear = new Date().getFullYear();
-  const [isSticky, setIsSticky] = useState(true);
+  const [isSticky, setIsSticky] = useState(false);
 
   useEffect(() => {
     const checkHeight = () => {
       const windowHeight = window.innerHeight;
-      const bodyHeight = document.body.offsetHeight;
-      setIsSticky(windowHeight >= bodyHeight);
+      const bodyHeight = document.body.scrollHeight;
+      setIsSticky(windowHeight > bodyHeight);
     };
 
     checkHeight();

@@ -1,31 +1,42 @@
 import React, { useState } from "react";
-import { Comment, useUpdateComment } from "../hooks/useComments";
-import { useGetUser } from "../hooks/userUser";
+import {
+  Comment,
+  useUpdateComment,
+  useDeleteComment,
+} from "../hooks/useComments";
+import { useGetUser } from "../hooks/useUser";
 import { jwtDecode } from "jwt-decode";
-import { Calendar, Pencil } from "lucide-react";
-import EditCommentModal from "./EditCommentModel";
+import { Calendar, Pencil, Trash2 } from "lucide-react";
+import EditCommentModal from "../components/EditCommentModel";
+import ConfirmModal from "./ConfirmModal";
 
 interface CommentItemProps {
   comment: Comment;
+  refetchComments: () => void;
 }
 
-const CommentItem: React.FC<CommentItemProps> = ({ comment }) => {
+const CommentItem: React.FC<CommentItemProps> = ({
+  comment,
+  refetchComments,
+}) => {
   const { user } = useGetUser({ userId: comment.authorId });
   const token = localStorage.getItem("token");
   const decoded: { id: string } = token ? jwtDecode(token) : { id: "" };
   const currentUserId = decoded.id;
   const avatarUrl = `https://robohash.org/${comment.authorId}.png?size=50x50`;
 
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
 
-  const { updateComment } = useUpdateComment();
+  const { updateComment } = useUpdateComment(refetchComments);
+  const { deleteComment } = useDeleteComment(refetchComments);
 
-  const handleOpenModal = () => {
-    setIsModalOpen(true);
+  const handleOpenEditModal = () => {
+    setIsEditModalOpen(true);
   };
 
-  const handleCloseModal = () => {
-    setIsModalOpen(false);
+  const handleCloseEditModal = () => {
+    setIsEditModalOpen(false);
   };
 
   const handleSaveComment = async ({
@@ -35,8 +46,21 @@ const CommentItem: React.FC<CommentItemProps> = ({ comment }) => {
     title: string;
     content: string;
   }) => {
-    updateComment({ id: comment.id, title, content });
+    await updateComment({ id: comment.id, title, content });
     console.log("Comment updated");
+  };
+
+  const handleOpenConfirmModal = () => {
+    setIsConfirmModalOpen(true);
+  };
+
+  const handleCloseConfirmModal = () => {
+    setIsConfirmModalOpen(false);
+  };
+
+  const handleDeleteComment = async () => {
+    await deleteComment(comment.id);
+    console.log("Comment deleted");
   };
 
   return (
@@ -50,12 +74,20 @@ const CommentItem: React.FC<CommentItemProps> = ({ comment }) => {
               @{user?.name}
             </span>
             {comment.authorId === currentUserId && (
-              <button
-                className="text-blue-500 text-sm hover:underline"
-                onClick={handleOpenModal}
-              >
-                <Pencil size={16} className="mb-1" />
-              </button>
+              <>
+                <button
+                  className="text-blue-500 text-sm hover:underline"
+                  onClick={handleOpenEditModal}
+                >
+                  <Pencil size={16} className="mb-1" />
+                </button>
+                <button
+                  className="text-red-500 text-sm hover:underline"
+                  onClick={handleOpenConfirmModal}
+                >
+                  <Trash2 size={16} className="mb-1" />
+                </button>
+              </>
             )}
           </div>
         </div>
@@ -68,10 +100,16 @@ const CommentItem: React.FC<CommentItemProps> = ({ comment }) => {
         </div>
       </div>
       <EditCommentModal
-        isOpen={isModalOpen}
-        onClose={handleCloseModal}
+        isOpen={isEditModalOpen}
+        onClose={handleCloseEditModal}
         comment={{ title: comment.title, content: comment.content }}
         onSave={handleSaveComment}
+      />
+      <ConfirmModal
+        isOpen={isConfirmModalOpen}
+        onClose={handleCloseConfirmModal}
+        onConfirm={handleDeleteComment}
+        message="Are you sure you want to delete this comment?"
       />
     </div>
   );

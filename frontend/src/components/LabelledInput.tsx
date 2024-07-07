@@ -6,6 +6,7 @@ type LabelledInputProps = {
   placeholder: string;
   register: UseFormRegisterReturn;
   type?: string;
+  disabled?: boolean; // Add this line
 };
 
 const LabelledInput: React.FC<LabelledInputProps> = ({
@@ -13,6 +14,7 @@ const LabelledInput: React.FC<LabelledInputProps> = ({
   placeholder,
   register,
   type = "text",
+  disabled = false, // Add this line
 }) => {
   return (
     <div className="mb-4 w-full">
@@ -23,7 +25,10 @@ const LabelledInput: React.FC<LabelledInputProps> = ({
         type={type}
         placeholder={placeholder}
         {...register}
-        className="bg-slate-50 border border-slate-950 text-slate-950 text-sm sm:text-base rounded-md focus:ring-blue-500 focus:border-blue-500 block w-full p-2 sm:p-2.5 transition-all duration-300 ease-in-out"
+        disabled={disabled} // Add this line
+        className={`bg-slate-50 border border-slate-950 text-slate-950 text-sm sm:text-base rounded-md focus:ring-blue-500 focus:border-blue-500 block w-full p-2 sm:p-2.5 transition-all duration-300 ease-in-out ${
+          disabled ? "bg-gray-100 cursor-not-allowed" : ""
+        }`}
       />
     </div>
   );

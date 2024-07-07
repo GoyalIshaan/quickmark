@@ -6,6 +6,8 @@ import AllBlogs from "./pages/AllBlogs";
 import Blog from "./pages/BlogPost";
 import CreateBlogPost from "./pages/Create";
 import Dashboard from "./pages/Dashboard";
+import Profile from "./pages/Profile";
+import EditBlogPost from "./pages/EditBlog";
 
 const router = createBrowserRouter([
   {
@@ -35,6 +37,14 @@ const router = createBrowserRouter([
       {
         path: "/create",
         element: <CreateBlogPost />,
+      },
+      {
+        path: "/profile",
+        element: <Profile />,
+      },
+      {
+        path: "/edit/:blogId",
+        element: <EditBlogPost />,
       },
     ],
   },

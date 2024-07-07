@@ -1,6 +1,6 @@
 import React from "react";
 import BlogCard from "../components/BlogCard";
-import useBlogs from "../hooks/useBlogs";
+import { useBlogs } from "../hooks/useBlogs";
 import BlogCardSkeleton from "../components/BlogCardSkeleton";
 
 const AllBlogs: React.FC = () => {

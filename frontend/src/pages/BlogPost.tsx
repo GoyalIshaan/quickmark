@@ -1,20 +1,34 @@
-import React from "react";
+import React, { useState } from "react";
 import { useParams } from "react-router-dom";
 import useBlog from "../hooks/useBlog";
 import BlogPostSkeleton from "../components/BlogPostSkeleton";
 import { useGetComment, usePostComment } from "../hooks/useComments";
 import Comments from "../components/Comment";
 import CreateComment from "../components/CreateComment";
+import CommentSkeleton from "../components/CommentSkeleton";
+import { AnimatePresence } from "framer-motion";
 
 const BlogPost: React.FC = () => {
   const { id = "" } = useParams<{ id: string }>();
-  const { loading, blog } = useBlog({ id: id || "" });
-  const { comments, loading: commentsLoading } = useGetComment({
+  const { loading: blogLoading, blog } = useBlog({ id: id || "" });
+  const [refetching, setRefetching] = useState(false);
+  const {
+    comments,
+    loading: commentsLoading,
+    refetchComments: originalRefetchComments,
+  } = useGetComment({
     blogId: id || "",
   });
-  const { postComment } = usePostComment();
 
-  if (loading) {
+  const refetchComments = async () => {
+    setRefetching(true);
+    await originalRefetchComments();
+    setRefetching(false);
+  };
+
+  const { postComment } = usePostComment(refetchComments);
+
+  if (blogLoading) {
     return <BlogPostSkeleton />;
   }
 
@@ -26,6 +40,7 @@ const BlogPost: React.FC = () => {
     };
     return new Date(dateString).toLocaleDateString(undefined, options);
   };
+
   const handleCommentSubmit = async ({
     title,
     content,
@@ -33,13 +48,14 @@ const BlogPost: React.FC = () => {
     title: string;
     content: string;
   }) => {
-    postComment({ id, title, content });
+    console.log("Comment submitted", id);
+    await postComment({ id, title, content });
   };
 
   return (
-    <div className="max-w-6xl mx-auto px-4 py-8">
-      <div className="flex flex-col md:flex-row justify-between">
-        <div className="md:w-2/3 pr-8">
+    <div className="flex-1 max-w-6xl mx-auto px-4 py-8 min-h-screen">
+      <div className="flex flex-col md:flex-row justify-between gap-8">
+        <div className="md:w-2/3">
           <h1 className="text-4xl font-bold mb-4">{blog.title}</h1>
           <div className="mb-6 text-gray-600">
             Posted on {formatDate(blog.createdAt)}
@@ -51,11 +67,17 @@ const BlogPost: React.FC = () => {
 
           <h2 className="text-3xl font-bold mb-4">Comments</h2>
 
-          {commentsLoading ? (
-            <p>Loading comments...</p>
-          ) : (
-            <Comments comments={comments} />
-          )}
+          <AnimatePresence>
+            {commentsLoading || refetching ? (
+              <CommentSkeleton />
+            ) : comments.length === 0 ? (
+              <p className="text-gray-600">
+                No comments yet. Be the first to comment!
+              </p>
+            ) : (
+              <Comments comments={comments} refetchComments={refetchComments} />
+            )}
+          </AnimatePresence>
         </div>
         <div className="md:w-1/3 mt-8 md:mt-0">
           <div className="sticky top-8">
