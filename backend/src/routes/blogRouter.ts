@@ -17,21 +17,40 @@ const blogRouter = new Hono<{
   };
 }>();
 
-//middleware to verify the jwt token
+// Middleware to verify the JWT token and apply conditionally
 blogRouter.use("/*", async (c, next) => {
-  try {
-    const authHeader = c.req.header("authorization") || "";
-    const user = await verify(authHeader, c.env.JWT_SECRET);
-    if (user) {
-      c.set("userId", user.id as string);
-      await next();
-    } else {
+  const excludePaths = [
+    "/api/v1/blog/bulk",
+    "/api/v1/blog/:id",
+    "/api/v1/blog/author/:authorId/",
+    "/api/v1/blog/likes/:blogId/",
+    "/api/v1/blog/saved/:blogId/",
+  ];
+  const currentPath = c.req.path;
+
+  // Check if the current path matches any of the exclude paths
+  const isExcluded = excludePaths.some((path) => {
+    const regex = new RegExp(`^${path.replace(/:[^\s/]+/g, "[^/]+")}$`);
+    return regex.test(currentPath);
+  });
+
+  if (!isExcluded) {
+    try {
+      const authHeader = c.req.header("authorization") || "";
+      const user = await verify(authHeader, c.env.JWT_SECRET);
+      if (user) {
+        c.set("userId", user.id as string);
+        await next();
+      } else {
+        c.status(401);
+        return c.json({ message: "Invalid token" });
+      }
+    } catch (error) {
       c.status(401);
-      return c.json({ message: "Invalid token" });
+      return c.json({ message: "Invalid or expired token" });
     }
-  } catch (error) {
-    c.status(401);
-    return c.json({ message: "Invalid or expired token" });
+  } else {
+    await next();
   }
 });
 
@@ -158,7 +177,7 @@ blogRouter.get("/:id", async (c) => {
   }
 });
 
-// @desc Get a Blog By Its Author
+// @desc Get Your Own Blogs
 // @route GET /api/v1/blog/author/
 // @access Private
 blogRouter.get("/author/", async (c) => {
@@ -167,6 +186,29 @@ blogRouter.get("/author/", async (c) => {
   }).$extends(withAccelerate());
 
   const authorId = c.get("userId");
+  try {
+    const blogs = await prisma.blog.findMany({
+      where: {
+        authorId,
+      },
+    });
+    return c.json({ blogs });
+  } catch (error) {
+    c.status(403);
+    return c.json({ message: "Couldn't get the blog" });
+  }
+});
+
+// @desc Get All The Blogs of a User
+// @route GET /api/v1/blog/author/:authorId
+// @access Public
+blogRouter.get("/author/:authorId/", async (c) => {
+  const prisma = new PrismaClient({
+    datasourceUrl: c.env.DATABASE_URL,
+  }).$extends(withAccelerate());
+
+  const authorId = c.req.param("authorId");
+
   try {
     const blogs = await prisma.blog.findMany({
       where: {
@@ -201,6 +243,66 @@ blogRouter.delete("/:blogId", async (c) => {
   } catch (error) {
     c.status(403);
     return c.json({ message: "Couldn't delete the blog" });
+  }
+});
+
+// @desc Get all likes
+// @route GET /api/v1/blog/likes/:blogId
+// @access Public
+blogRouter.get("/likes/:blogId/", async (c) => {
+  const prisma = new PrismaClient({
+    datasourceUrl: c.env.DATABASE_URL,
+  }).$extends(withAccelerate());
+  const blogId = c.req.param("blogId");
+  try {
+    const likeCount = await prisma.blog.findUnique({
+      where: {
+        id: blogId,
+      },
+      select: {
+        _count: {
+          select: {
+            likedBy: true,
+          },
+        },
+      },
+    });
+
+    c.status(200);
+    return c.json({ number: likeCount?._count?.likedBy ?? 0 });
+  } catch (error) {
+    c.status(403);
+    return c.json({ message: "Couldn't get the likes" });
+  }
+});
+
+// @desc Get all saved
+// @route GET /api/v1/blog/saved/:blogId
+// @access Public
+blogRouter.get("/saved/:blogId/", async (c) => {
+  const prisma = new PrismaClient({
+    datasourceUrl: c.env.DATABASE_URL,
+  }).$extends(withAccelerate());
+  const blogId = c.req.param("blogId");
+  try {
+    const saveCount = await prisma.blog.findUnique({
+      where: {
+        id: blogId,
+      },
+      select: {
+        _count: {
+          select: {
+            savedBy: true,
+          },
+        },
+      },
+    });
+
+    c.status(200);
+    return c.json({ number: saveCount?._count?.savedBy ?? 0 });
+  } catch (error) {
+    c.status(403);
+    return c.json({ message: "Couldn't get the saves" });
   }
 });
 

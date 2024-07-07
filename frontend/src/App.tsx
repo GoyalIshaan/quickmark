@@ -8,6 +8,8 @@ import CreateBlogPost from "./pages/Create";
 import Dashboard from "./pages/Dashboard";
 import Profile from "./pages/Profile";
 import EditBlogPost from "./pages/EditBlog";
+import ProtectedRoute from "./components/ProtectedRoute";
+import { ToastContainer } from "react-toastify";
 
 const router = createBrowserRouter([
   {
@@ -36,22 +38,39 @@ const router = createBrowserRouter([
       },
       {
         path: "/create",
-        element: <CreateBlogPost />,
+        element: (
+          <ProtectedRoute>
+            <CreateBlogPost />
+          </ProtectedRoute>
+        ),
       },
       {
         path: "/profile",
-        element: <Profile />,
+        element: (
+          <ProtectedRoute>
+            <Profile />
+          </ProtectedRoute>
+        ),
       },
       {
         path: "/edit/:blogId",
-        element: <EditBlogPost />,
+        element: (
+          <ProtectedRoute>
+            <EditBlogPost />
+          </ProtectedRoute>
+        ),
       },
     ],
   },
 ]);
 
 const App = () => {
-  return <RouterProvider router={router} />;
+  return (
+    <>
+      <ToastContainer />
+      <RouterProvider router={router} />
+    </>
+  );
 };
 
 export default App;

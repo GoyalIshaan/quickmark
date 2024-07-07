@@ -16,19 +16,33 @@ const commentRouter = new Hono<{
 
 //middleware to verify the jwt token
 commentRouter.use("/*", async (c, next) => {
-  try {
-    const authHeader = c.req.header("authorization") || "";
-    const user = await verify(authHeader, c.env.JWT_SECRET);
-    if (user) {
-      c.set("userId", user.id as string);
-      await next();
-    } else {
+  const excludePath = "/api/v1/comment/:blogId";
+  const currentPath = c.req.path;
+
+  // Check if the current path matches the exclude path
+  const isExcluded = (() => {
+    const pattern = excludePath.replace(/:blogId/, "[^/]+");
+    const regex = new RegExp(`^${pattern}$`);
+    return regex.test(currentPath);
+  })();
+
+  if (!isExcluded) {
+    try {
+      const authHeader = c.req.header("authorization") || "";
+      const user = await verify(authHeader, c.env.JWT_SECRET);
+      if (user) {
+        c.set("userId", user.id as string);
+        await next();
+      } else {
+        c.status(401);
+        return c.json({ message: "Invalid token" });
+      }
+    } catch (error) {
       c.status(401);
-      return c.json({ message: "Invalid token" });
+      return c.json({ message: "Invalid or expired token" });
     }
-  } catch (error) {
-    c.status(401);
-    return c.json({ message: "Invalid or expired token" });
+  } else {
+    await next();
   }
 });
 

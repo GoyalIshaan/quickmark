@@ -7,6 +7,9 @@ import Comments from "../components/Comment";
 import CreateComment from "../components/CreateComment";
 import CommentSkeleton from "../components/CommentSkeleton";
 import { AnimatePresence } from "framer-motion";
+import ShareButton from "../components/ShareButton";
+import LikeButton from "../components/LikeButton";
+import SaveButton from "../components/SaveButton";
 
 const BlogPost: React.FC = () => {
   const { id = "" } = useParams<{ id: string }>();
@@ -56,17 +59,21 @@ const BlogPost: React.FC = () => {
     <div className="flex-1 max-w-6xl mx-auto px-4 py-8 min-h-screen">
       <div className="flex flex-col md:flex-row justify-between gap-8">
         <div className="md:w-2/3">
-          <h1 className="text-4xl font-bold mb-4">{blog.title}</h1>
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4">
+            <h1 className="text-4xl font-bold mb-2 sm:mb-0">{blog.title}</h1>
+            <div className="flex items-center space-x-3">
+              <LikeButton blogId={id} />
+              <SaveButton blogId={id} />
+              <ShareButton blogId={id} />
+            </div>
+          </div>
           <div className="mb-6 text-gray-600">
             Posted on {formatDate(blog.createdAt)}
             <span className="ml-2 cursor-pointer">🔍</span>
           </div>
           <div className="prose max-w-none mb-8">{blog.content}</div>
-
           <hr className="my-8 border-gray-300" />
-
           <h2 className="text-3xl font-bold mb-4">Comments</h2>
-
           <AnimatePresence>
             {commentsLoading || refetching ? (
               <CommentSkeleton />

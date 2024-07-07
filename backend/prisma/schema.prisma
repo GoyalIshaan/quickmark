@@ -1,9 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -14,14 +8,18 @@ datasource db {
 }
 
 model User {
-  id        String   @id @default(uuid())
-  email     String   @unique
+  id        String     @id @default(uuid())
+  email     String     @unique
   name      String?
   password  String
   posts     Blog[]
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
   comments  Comment[]
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  likes     Blog[]     @relation("Likes")
+  saved     Blog[]     @relation("Saved")
+  following Following[] @relation("Following_follower")
+  followers Following[] @relation("Following_following")
 }
 
 model Blog {
@@ -31,9 +29,11 @@ model Blog {
   published Boolean  @default(false)
   author    User     @relation(fields: [authorId], references: [id])
   authorId  String
+  comments  Comment[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  comments  Comment[]
+  likedBy   User[]   @relation("Likes")
+  savedBy   User[]   @relation("Saved")
 }
 
 model Comment {
@@ -46,4 +46,14 @@ model Comment {
   authorId  String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+model Following {
+  followerId  String
+  followingId String
+  follower    User @relation("Following_follower", fields: [followerId], references: [id])
+  following   User @relation("Following_following", fields: [followingId], references: [id])
+  
+  //composite primary key to ensure no duplicate pair entries exist
+  @@id([followerId, followingId])
 }

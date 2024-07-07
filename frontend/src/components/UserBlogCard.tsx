@@ -3,7 +3,7 @@ import { motion } from "framer-motion";
 import { FaEdit, FaTrash } from "react-icons/fa";
 import { useDeleteBlog } from "../hooks/useBlogs";
 import ConfirmModal from "./ConfirmModal";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 
 interface UserBlogCardProps {
   title: string;
@@ -38,37 +38,58 @@ const UserBlogCard: React.FC<UserBlogCardProps> = ({
     }
   };
 
+  const maxCharacters = 150;
+  const truncateContent = (text: string, limit: number) => {
+    if (text.length <= limit) return text;
+    return text.slice(0, limit).trim() + "...";
+  };
+  const truncatedContent = truncateContent(content, maxCharacters);
+
   return (
     <>
       <motion.div
-        className="bg-gray-800 p-4 rounded-lg shadow-md relative"
+        className="bg-gray-800 p-4 rounded-lg shadow-md relative h-full flex flex-col justify-between"
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.3 }}
       >
-        <h3 className="text-xl font-semibold mb-2">{title}</h3>
-        <p className="text-gray-300 mb-4">{content.substring(0, 100)}...</p>
-        <p className="text-sm text-gray-400">
-          Created on: {new Date(createdAt).toLocaleDateString()}
-        </p>
-        <div className="absolute top-2 right-2 flex space-x-2">
-          <motion.button
-            onClick={handleEdit}
-            whileHover={{ scale: 1.1 }}
-            whileTap={{ scale: 0.9 }}
-            className="text-white hover:text-blue-300 transition-colors duration-200"
-          >
-            <FaEdit />
-          </motion.button>
-          <motion.button
-            onClick={() => setIsConfirmOpen(true)}
-            whileHover={{ scale: 1.1 }}
-            whileTap={{ scale: 0.9 }}
-            className="text-white hover:text-red-300 transition-colors duration-200"
-          >
-            <FaTrash />
-          </motion.button>
-        </div>
+        <Link to={`/blogs/${id}`} className="flex flex-col h-full">
+          <div className="flex-grow">
+            <h3 className="text-xl font-semibold mb-2">{title}</h3>
+            <p className="text-gray-300 mb-4 overflow-hidden overflow-ellipsis">
+              {truncatedContent}
+            </p>
+          </div>
+          <div className="mt-auto">
+            <p className="text-sm text-gray-400 mb-2">
+              Created on: {new Date(createdAt).toLocaleDateString()}
+            </p>
+            <div className="absolute top-2 right-2 flex space-x-2 text-gray-50">
+              <motion.button
+                onClick={(e) => {
+                  e.preventDefault();
+                  handleEdit();
+                }}
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.9 }}
+                className="text-white hover:text-blue-300 transition-colors duration-200"
+              >
+                <FaEdit />
+              </motion.button>
+              <motion.button
+                onClick={(e) => {
+                  e.preventDefault();
+                  setIsConfirmOpen(true);
+                }}
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.9 }}
+                className="text-white hover:text-red-300 transition-colors duration-200"
+              >
+                <FaTrash />
+              </motion.button>
+            </div>
+          </div>
+        </Link>
       </motion.div>
 
       {isConfirmOpen && (

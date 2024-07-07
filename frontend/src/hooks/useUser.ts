@@ -24,10 +24,17 @@ const useGetUser = ({
   useEffect(() => {
     const getUser = async () => {
       try {
-        await axios.get(`${BACKEND_URL}/api/v1/user/${userId}`).then((res) => {
-          setUser(res.data.user);
-          setLoading(false);
-        });
+        const token = localStorage.getItem("token");
+        await axios
+          .get(`${BACKEND_URL}/api/v1/user/${userId}`, {
+            headers: {
+              Authorization: token,
+            },
+          })
+          .then((res) => {
+            setUser(res.data.user);
+            setLoading(false);
+          });
       } catch (error) {
         console.error("Error getting user:", error);
         setLoading(false);

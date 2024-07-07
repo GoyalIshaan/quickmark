@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { useForm, SubmitHandler } from "react-hook-form";
 import { PlusCircle } from "lucide-react";
 import TextareaAutosize from "react-textarea-autosize";
@@ -12,17 +12,63 @@ interface IFormInput {
 }
 
 const CreateBlogPost: React.FC = () => {
-  const { register, handleSubmit, watch } = useForm<IFormInput>();
+  const { register, handleSubmit, watch, setValue } = useForm<IFormInput>();
   const titleValue = watch("title");
   const [content, setContent] = useState("");
+  const [showDraftPrompt, setShowDraftPrompt] = useState(false);
   const contentEditableRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
   const { loading, postBlog, error } = usePostBlog();
+
+  useEffect(() => {
+    const draft = localStorage.getItem("draft");
+    if (draft) {
+      setShowDraftPrompt(true);
+    }
+  }, []);
+
+  const loadDraft = () => {
+    const draft = localStorage.getItem("draft");
+    if (draft) {
+      const { title, content } = JSON.parse(draft);
+      setValue("title", title);
+      setContent(content);
+    }
+    setShowDraftPrompt(false);
+  };
+
+  const discardDraft = () => {
+    localStorage.removeItem("draft");
+    setShowDraftPrompt(false);
+  };
+
+  useEffect(() => {
+    const saveDraft = () => {
+      if (titleValue || content) {
+        localStorage.setItem(
+          "draft",
+          JSON.stringify({ title: titleValue, content })
+        );
+      }
+    };
+
+    const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+      saveDraft();
+      event.preventDefault();
+    };
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => {
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+      saveDraft();
+    };
+  }, [titleValue, content]);
 
   const onSubmit: SubmitHandler<IFormInput> = async (data) => {
     try {
       const blogID = await postBlog(data.title, content);
       if (blogID) {
+        localStorage.removeItem("draft");
         navigate(`/blogs/${blogID}`);
       }
     } catch (err) {
@@ -38,6 +84,27 @@ const CreateBlogPost: React.FC = () => {
   return (
     <div className="min-h-screen flex flex-col">
       <div className="flex-grow max-w-3xl mx-auto w-full px-4 py-16">
+        {showDraftPrompt && (
+          <div className="mb-6 p-8 bg-slate-50 border border-slate-100 rounded-lg text-black">
+            <p className="mb-4">
+              You have an unsaved draft. Would you like to load it?
+            </p>
+            <div className="mt-2 flex gap-4">
+              <button
+                onClick={loadDraft}
+                className="bg-white text-black px-4 py-2 rounded"
+              >
+                Load Draft
+              </button>
+              <button
+                onClick={discardDraft}
+                className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600"
+              >
+                Discard Draft
+              </button>
+            </div>
+          </div>
+        )}
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
           <div className="flex items-center relative h-16">
             <div

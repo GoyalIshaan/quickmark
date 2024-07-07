@@ -17,6 +17,10 @@ interface UseBlogsResult {
   blogs: Blog[];
 }
 
+const getAuthHeader = () => ({
+  Authorization: localStorage.getItem("token"),
+});
+
 const useBlogs = (): UseBlogsResult => {
   const [loading, setLoading] = useState<boolean>(true);
   const [blogs, setBlogs] = useState<Blog[]>([]);
@@ -109,4 +113,228 @@ const useUpdateBlogPost = () => {
   return { loading, updateBlog };
 };
 
-export { useBlogs, useGetBlogsByAuthor, useDeleteBlog, useUpdateBlogPost };
+const useLikeBlog = (blogId: string) => {
+  const likeBlog = useCallback(async () => {
+    try {
+      await axios.post(
+        `${BACKEND_URL}/api/v1/user/like/${blogId}/`,
+        {},
+        { headers: getAuthHeader() }
+      );
+      console.log("Blog liked");
+    } catch (error) {
+      console.error("Error liking blog:", error);
+      throw error;
+    }
+  }, [blogId]);
+
+  return { likeBlog };
+};
+
+const useUnlikeBlog = (blogId: string) => {
+  const unlikeBlog = useCallback(async () => {
+    try {
+      await axios.post(
+        `${BACKEND_URL}/api/v1/user/unlike/${blogId}/`,
+        {},
+        { headers: getAuthHeader() }
+      );
+      console.log("Blog unliked");
+    } catch (error) {
+      console.error("Error unliking blog:", error);
+      throw error;
+    }
+  }, [blogId]);
+
+  return { unlikeBlog };
+};
+
+const useGetNumberOfLikes = (blogId: string) => {
+  const [likes, setLikes] = useState(0);
+  const [loading, setLoading] = useState(true);
+
+  const fetchLikes = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await axios.get(
+        `${BACKEND_URL}/api/v1/blog/likes/${blogId}/`
+      );
+      setLikes(res.data.number);
+    } catch (error) {
+      console.error("Error fetching likes:", error);
+    } finally {
+      setLoading(false);
+    }
+  }, [blogId]);
+
+  useEffect(() => {
+    fetchLikes();
+  }, [fetchLikes]);
+
+  return { likes, refetchLikes: fetchLikes, loading };
+};
+
+const useLikedByUser = (blogId: string) => {
+  const [isLiked, setIsLiked] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  const checkIfLiked = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await axios.get(
+        `${BACKEND_URL}/api/v1/user/like/${blogId}/`,
+        {
+          headers: getAuthHeader(),
+        }
+      );
+      setIsLiked(res.data.liked);
+      return res.data.liked;
+    } catch (error) {
+      console.error("Error checking if blog is liked:", error);
+      return false;
+    } finally {
+      setLoading(false);
+    }
+  }, [blogId]);
+
+  useEffect(() => {
+    checkIfLiked();
+  }, [checkIfLiked]);
+
+  return { isLiked, checkIfLiked, loading };
+};
+
+const useSaveBlog = (blogId: string) => {
+  const saveBlog = useCallback(async () => {
+    try {
+      await axios.post(
+        `${BACKEND_URL}/api/v1/user/save/${blogId}/`,
+        {},
+        { headers: getAuthHeader() }
+      );
+      console.log("Blog saved");
+    } catch (error) {
+      console.error("Error saving blog:", error);
+      throw error;
+    }
+  }, [blogId]);
+  return { saveBlog };
+};
+
+const useUnsaveBlog = (blogId: string) => {
+  const unsaveBlog = useCallback(async () => {
+    try {
+      await axios.post(
+        `${BACKEND_URL}/api/v1/user/unsave/${blogId}/`,
+        {},
+        { headers: getAuthHeader() }
+      );
+      console.log("Blog unsaved");
+    } catch (error) {
+      console.error("Error in unsaving blog:", error);
+      throw error;
+    }
+  }, [blogId]);
+  return { unsaveBlog };
+};
+
+const useGetNumberOfSaves = (blogId: string) => {
+  const [saves, setSaves] = useState(0);
+  const [loading, setLoading] = useState(true);
+
+  const fetchSaves = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await axios.get(
+        `${BACKEND_URL}/api/v1/blog/saved/${blogId}/`
+      );
+      setSaves(res.data.number);
+    } catch (error) {
+      console.error("Error fetching saves:", error);
+    } finally {
+      setLoading(false);
+    }
+  }, [blogId]);
+
+  useEffect(() => {
+    fetchSaves();
+  }, [fetchSaves]);
+
+  return { saves, refetchSaves: fetchSaves, loading };
+};
+
+const useSavedByUser = (blogId: string) => {
+  const [saved, setSaved] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  const checkIfSaved = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await axios.get(
+        `${BACKEND_URL}/api/v1/user/save/${blogId}/`,
+        {
+          headers: getAuthHeader(),
+        }
+      );
+      setSaved(res.data.saved);
+      return res.data.saved;
+    } catch (error) {
+      console.error("Error checking if blog is saved:", error);
+      return false;
+    } finally {
+      setLoading(false);
+    }
+  }, [blogId]);
+
+  useEffect(() => {
+    checkIfSaved();
+  }, [checkIfSaved]);
+
+  return { saved, checkIfSaved, loading };
+};
+
+const useGetSavedBlogs = () => {
+  const [loading, setLoading] = useState<boolean>(true);
+  const [savedBlogs, setSavedBlogs] = useState<Blog[]>([]);
+
+  const fetchSavedBlogs = useCallback(async () => {
+    setLoading(true);
+    try {
+      const response = await axios.get(`${BACKEND_URL}/api/v1/user/save/`, {
+        headers: getAuthHeader(),
+      });
+      console.log("Saved blogs:", response.data.savedBlogs.saved);
+      setSavedBlogs(response.data.savedBlogs.saved);
+    } catch (error) {
+      console.error("Error fetching saved blogs:", error);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchSavedBlogs();
+  }, [fetchSavedBlogs]);
+
+  const refetchSavedBlogs = useCallback(() => {
+    fetchSavedBlogs();
+  }, [fetchSavedBlogs]);
+
+  return { loading, savedBlogs, refetchSavedBlogs };
+};
+
+export {
+  useBlogs,
+  useGetBlogsByAuthor,
+  useDeleteBlog,
+  useUpdateBlogPost,
+  useGetNumberOfLikes,
+  useLikeBlog,
+  useUnlikeBlog,
+  useLikedByUser,
+  useSaveBlog,
+  useUnsaveBlog,
+  useGetNumberOfSaves,
+  useSavedByUser,
+  useGetSavedBlogs,
+};
