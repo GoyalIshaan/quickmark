@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Link, useParams } from "react-router-dom";
 import useBlog from "../hooks/useBlog";
 import BlogPostSkeleton from "../components/BlogPostSkeleton";
@@ -10,17 +10,15 @@ import { AnimatePresence } from "framer-motion";
 import ShareButton from "../components/ShareButton";
 import LikeButton from "../components/LikeButton";
 import SaveButton from "../components/SaveButton";
-import DOMPurify from "dompurify";
-import katex from "katex";
+import { processHtmlContent } from "../components/Rehype";
 import "katex/dist/katex.min.css";
-
-// Added katex to window object for formula rendering
-window.katex = katex;
+import "highlight.js/styles/github.css";
 
 const BlogPost: React.FC = () => {
   const { id = "" } = useParams<{ id: string }>();
   const { loading: blogLoading, blog } = useBlog({ id: id || "" });
   const [refetching, setRefetching] = useState(false);
+  const [processedContent, setProcessedContent] = useState<string>("");
   const {
     comments,
     loading: commentsLoading,
@@ -36,6 +34,17 @@ const BlogPost: React.FC = () => {
   };
 
   const { postComment } = usePostComment(refetchComments);
+
+  useEffect(() => {
+    const processContent = async () => {
+      if (blog && blog.content) {
+        const result = await processHtmlContent(blog.content);
+        setProcessedContent(result);
+      }
+    };
+
+    processContent();
+  }, [blog]);
 
   if (blogLoading) {
     return <BlogPostSkeleton />;
@@ -57,16 +66,12 @@ const BlogPost: React.FC = () => {
     title: string;
     content: string;
   }) => {
-    console.log("Comment submitted", id);
     await postComment({ id, title, content });
   };
 
   const avatarUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(
     blog.author.name
   )}&background=random&length=1`;
-
-  // Sanitize the blog content
-  const sanitizedContent = DOMPurify.sanitize(blog.content);
 
   return (
     <div className="flex-1 max-w-6xl mx-auto px-4 py-8 min-h-screen">
@@ -84,11 +89,10 @@ const BlogPost: React.FC = () => {
           </div>
           <div className="mb-6 text-gray-600">
             Posted on {formatDate(blog.createdAt)}
-            <span className="ml-2 cursor-pointer">🔍</span>
           </div>
           <div
             className="prose max-w-none mb-8"
-            dangerouslySetInnerHTML={{ __html: sanitizedContent }}
+            dangerouslySetInnerHTML={{ __html: processedContent }}
           />
           <hr className="my-8 border-gray-300" />
           <h2 className="text-3xl font-bold mb-4">Comments</h2>
@@ -107,7 +111,7 @@ const BlogPost: React.FC = () => {
         <div className="md:w-1/3 mt-8 md:mt-0">
           <div className="sticky top-8">
             <Link to={`/author/${blog.author.id}`}>
-              <div className="bg-gray-50 p-6 rounded-md">
+              <div className="bg-gray-50 p-6 rounded-md shadow-md">
                 <div className="flex items-center mb-4">
                   <img
                     src={avatarUrl}
