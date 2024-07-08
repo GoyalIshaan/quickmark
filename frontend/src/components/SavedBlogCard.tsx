@@ -19,9 +19,17 @@ const SavedBlogCard: React.FC<SavedBlogCardProps> = ({
   refetchSavedBlogs,
 }) => {
   const maxCharacters = 150;
+
+  const stripHtmlTags = (html: string) => {
+    const tmp = document.createElement("DIV");
+    tmp.innerHTML = html;
+    return tmp.textContent || tmp.innerText || "";
+  };
+
   const truncateContent = (text: string, limit: number) => {
-    if (text.length <= limit) return text;
-    return text.slice(0, limit).trim() + "...";
+    const strippedText = stripHtmlTags(text);
+    if (strippedText.length <= limit) return strippedText;
+    return strippedText.slice(0, limit).trim() + "...";
   };
   const truncatedContent = truncateContent(content, maxCharacters);
 
