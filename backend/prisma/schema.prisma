@@ -40,7 +40,7 @@ model Comment {
   id        String   @id @default(uuid())
   title     String
   content   String
-  post      Blog     @relation(fields: [blogId], references: [id])
+  post      Blog     @relation(fields: [blogId], references: [id], onDelete: Cascade)
   blogId    String
   author    User     @relation(fields: [authorId], references: [id])
   authorId  String

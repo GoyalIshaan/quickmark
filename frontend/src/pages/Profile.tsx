@@ -16,6 +16,8 @@ import UserBlogCard from "../components/UserBlogCard";
 import UserBlogCardSkeleton from "../components/UserBlogCardSkeleton";
 import SavedBlogs from "../components/SavedBlogs";
 import { Link, useNavigate } from "react-router-dom";
+import FollowersModal from "../components/FollowersModal";
+import FollowingModal from "../components/FollowingModal";
 
 type FormData = {
   name: string;
@@ -26,6 +28,8 @@ type FormData = {
 const ProfilePage: React.FC = () => {
   const [isLocked, setIsLocked] = useState(true);
   const [showSavedBlogs, setShowSavedBlogs] = useState(false);
+  const [showFollowersModal, setShowFollowersModal] = useState(false);
+  const [showFollowingModal, setShowFollowingModal] = useState(false);
   const token = localStorage.getItem("token");
   const decoded: { id: string } = token ? jwtDecode(token) : { id: "" };
   const currentUserId = decoded.id as string;
@@ -172,6 +176,14 @@ const ProfilePage: React.FC = () => {
             transition={{ duration: 0.5 }}
           >
             <div className="bg-white text-black p-6 rounded-lg shadow-lg w-full max-w-md mb-10">
+              <motion.img
+                src={`https://ui-avatars.com/api/?name=${encodeURIComponent(
+                  user?.name || ""
+                )}&background=random&length=1`}
+                alt="Author Avatar"
+                className="w-32 h-32 rounded-full mx-auto border-4 border-blue-500"
+                whileHover={{ scale: 1.05 }}
+              />
               <h2 className="text-2xl font-bold mb-4">Profile</h2>
               <div className="space-y-4">
                 <div>
@@ -181,6 +193,20 @@ const ProfilePage: React.FC = () => {
                 <div>
                   <label className="block text-gray-600">Email</label>
                   <p className="text-lg font-semibold">{watchedFields.email}</p>
+                </div>
+                <div className="flex gap-4">
+                  <button
+                    onClick={() => setShowFollowersModal(true)}
+                    className="bg-black text-white px-4 py-2 rounded"
+                  >
+                    See Followers
+                  </button>
+                  <button
+                    onClick={() => setShowFollowingModal(true)}
+                    className="bg-white text-black border-2 border-black px-4 py-2 rounded"
+                  >
+                    See Following
+                  </button>
                 </div>
                 <div className="pt-4 border-t flex justify-between items-center border-gray-300">
                   <p className="text-sm text-gray-600 text-center">
@@ -289,6 +315,21 @@ const ProfilePage: React.FC = () => {
           </AnimatePresence>
         </div>
       </div>
+
+      <AnimatePresence>
+        {showFollowersModal && (
+          <FollowersModal
+            isOpen={showFollowersModal}
+            onClose={() => setShowFollowersModal(false)}
+          />
+        )}
+        {showFollowingModal && (
+          <FollowingModal
+            isOpen={showFollowingModal}
+            onClose={() => setShowFollowingModal(false)}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 };

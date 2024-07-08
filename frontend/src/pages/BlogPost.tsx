@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { useParams } from "react-router-dom";
+import { Link, useParams } from "react-router-dom";
 import useBlog from "../hooks/useBlog";
 import BlogPostSkeleton from "../components/BlogPostSkeleton";
 import { useGetComment, usePostComment } from "../hooks/useComments";
@@ -55,6 +55,10 @@ const BlogPost: React.FC = () => {
     await postComment({ id, title, content });
   };
 
+  const avatarUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(
+    blog.author.name
+  )}&background=random&length=1`;
+
   return (
     <div className="flex-1 max-w-6xl mx-auto px-4 py-8 min-h-screen">
       <div className="flex flex-col md:flex-row justify-between gap-8">
@@ -88,19 +92,21 @@ const BlogPost: React.FC = () => {
         </div>
         <div className="md:w-1/3 mt-8 md:mt-0">
           <div className="sticky top-8">
-            <div className="bg-gray-50 p-6 rounded-md">
-              <div className="flex items-center mb-4">
-                <div className="w-16 h-16 bg-gray-300 rounded-full mr-4"></div>
-                <div>
-                  <h3 className="font-bold text-xl">{blog.author.name}</h3>
-                  <p className="text-gray-600">Author</p>
+            <Link to={`/author/${blog.author.id}`}>
+              <div className="bg-gray-50 p-6 rounded-md">
+                <div className="flex items-center mb-4">
+                  <img
+                    src={avatarUrl}
+                    alt="Author Avatar"
+                    className="w-16 h-16 rounded-full mr-4"
+                  />
+                  <div>
+                    <h3 className="font-bold text-xl">{blog.author.name}</h3>
+                    <p className="text-gray-600">Author</p>
+                  </div>
                 </div>
               </div>
-              <p className="text-gray-700">
-                Master of mirth, purveyor of puns, and the funniest person in
-                the kingdom.
-              </p>
-            </div>
+            </Link>
             <CreateComment onSubmit={handleCommentSubmit} />
           </div>
         </div>

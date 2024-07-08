@@ -8,7 +8,7 @@ interface SavedBlogCardProps {
   content: string;
   createdAt: string;
   id: string;
-  refetchSavedBlogs: () => void;
+  refetchSavedBlogs?: () => void;
 }
 
 const SavedBlogCard: React.FC<SavedBlogCardProps> = ({

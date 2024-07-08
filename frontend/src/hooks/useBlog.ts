@@ -7,6 +7,7 @@ export interface Blog {
   title: string;
   content: string;
   author: {
+    id: string;
     name: string;
   };
   createdAt: string;
@@ -42,7 +43,7 @@ const useBlog = ({ id }: { id: string }): UseBlogsResult => {
         id: "",
         title: "",
         content: "",
-        author: { name: "" },
+        author: { id: "", name: "" },
         createdAt: "",
       },
     };

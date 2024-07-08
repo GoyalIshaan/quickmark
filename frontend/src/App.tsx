@@ -10,6 +10,7 @@ import Profile from "./pages/Profile";
 import EditBlogPost from "./pages/EditBlog";
 import ProtectedRoute from "./components/ProtectedRoute";
 import { ToastContainer } from "react-toastify";
+import AuthorPage from "./pages/Author";
 
 const router = createBrowserRouter([
   {
@@ -59,6 +60,10 @@ const router = createBrowserRouter([
             <EditBlogPost />
           </ProtectedRoute>
         ),
+      },
+      {
+        path: "/author/:authorId",
+        element: <AuthorPage />,
       },
     ],
   },

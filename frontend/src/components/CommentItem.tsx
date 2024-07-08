@@ -23,7 +23,9 @@ const CommentItem: React.FC<CommentItemProps> = ({
   const token = localStorage.getItem("token");
   const decoded: { id: string } = token ? jwtDecode(token) : { id: "" };
   const currentUserId = decoded.id;
-  const avatarUrl = `https://robohash.org/${comment.authorId}.png?size=50x50`;
+  const avatarUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(
+    user?.name || ""
+  )}&background=random&length=1`;
 
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);

@@ -74,9 +74,7 @@ const useDeleteBlog = () => {
   const deleteBlog = async (blogId: string, onSuccess?: () => void) => {
     try {
       await axios.delete(`${BACKEND_URL}/api/v1/blog/${blogId}`, {
-        headers: {
-          Authorization: localStorage.getItem("token"),
-        },
+        headers: getAuthHeader(),
       });
       console.log("Blog deleted");
       if (onSuccess) {
@@ -323,6 +321,18 @@ const useGetSavedBlogs = () => {
   return { loading, savedBlogs, refetchSavedBlogs };
 };
 
+const useGetAllTheBlogsOfAAuthor = (authorId: string) => {
+  const [blogs, setBlogs] = useState<Blog[]>([]);
+  axios
+    .get(`${BACKEND_URL}/api/v1/blog/author/${authorId}/`, {
+      headers: { Authorization: localStorage.getItem("token") },
+    })
+    .then((res) => {
+      setBlogs(res.data.blogs);
+    });
+  return blogs;
+};
+
 export {
   useBlogs,
   useGetBlogsByAuthor,
@@ -337,4 +347,5 @@ export {
   useGetNumberOfSaves,
   useSavedByUser,
   useGetSavedBlogs,
+  useGetAllTheBlogsOfAAuthor,
 };

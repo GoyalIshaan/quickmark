@@ -603,4 +603,28 @@ userRouter.get("/save/:blogId/", async (c) => {
   }
 });
 
+// @desc If User Is Following Another User
+// @route GET /api/v1/user/follow/:idToCheck
+// @access Private
+userRouter.get("/follow/:idToCheck/", async (c) => {
+  const prisma = new PrismaClient({
+    datasourceUrl: c.env.DATABASE_URL,
+  }).$extends(withAccelerate());
+  const userId = c.get("userId");
+  const idToCheck = c.req.param("idToCheck");
+  try {
+    const following = await prisma.following.findFirst({
+      where: {
+        followerId: userId,
+        followingId: idToCheck,
+      },
+    });
+    c.status(200);
+    return c.json({ following: !!following });
+  } catch (error) {
+    c.status(400);
+    throw new Error("Couldn't get the following status");
+  }
+});
+
 export default userRouter;

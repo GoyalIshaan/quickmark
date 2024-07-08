@@ -164,6 +164,7 @@ blogRouter.get("/:id", async (c) => {
         content: true,
         author: {
           select: {
+            id: true,
             name: true,
           },
         },
@@ -238,11 +239,10 @@ blogRouter.delete("/:blogId", async (c) => {
         id: blogId,
       },
     });
-
     return c.json({ message: "Blog deleted" });
   } catch (error) {
     c.status(403);
-    return c.json({ message: "Couldn't delete the blog" });
+    return c.json({ message: error });
   }
 });
 
