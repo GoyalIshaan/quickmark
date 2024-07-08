@@ -1,4 +1,5 @@
 # Quickmark
+Note - The Prisma Accelerate Limit has been reached by this application thus resulting in it not running properly
 
 ## 🚀 Overview
 
@@ -34,6 +35,7 @@ This project is a full-stack, feature-rich blogging platform built with modern w
 - **Hono**: For building on edge environments.
 - **Postgress SQL**: As the database for storing user data and blog posts.
 - **Prisma ORM**: For object modeling and managing database schemas.
+- **Prisma Accelerate**: For connection pooling
 - **JSON Web Tokens (JWT)**: For secure authentication.
 - **Zod** - For runtime input validation
 
