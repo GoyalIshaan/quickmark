@@ -15,59 +15,97 @@ export interface Blog {
 interface UseBlogsResult {
   loading: boolean;
   blogs: Blog[];
+  totalPages: number;
+  currentPage: number;
+  setPage: (page: number) => void;
 }
 
 const getAuthHeader = () => ({
   Authorization: localStorage.getItem("token"),
 });
 
-const useBlogs = (): UseBlogsResult => {
+const useBlogs = (
+  initialPage: number = 1,
+  limit: number = 10
+): UseBlogsResult => {
   const [loading, setLoading] = useState<boolean>(true);
   const [blogs, setBlogs] = useState<Blog[]>([]);
+  const [totalPages, setTotalPages] = useState<number>(0);
+  const [currentPage, setCurrentPage] = useState<number>(initialPage);
 
-  useEffect(() => {
-    axios
-      .get(`${BACKEND_URL}/api/v1/blog/bulk`, {
+  const fetchBlogs = useCallback(async (page: number) => {
+    setLoading(true);
+    try {
+      const res = await axios.get(`${BACKEND_URL}/api/v1/blog/bulk`, {
         headers: {
           Authorization: localStorage.getItem("token"),
         },
-      })
-      .then((res) => {
-        setBlogs(res.data.blogs);
-        setLoading(false);
+        params: {
+          page,
+          limit,
+        },
       });
+      setBlogs(res.data.blogs);
+      setTotalPages(res.data.totalPages);
+    } catch (error) {
+      console.error("Error fetching blogs:", error);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
-  return { loading, blogs };
+  useEffect(() => {
+    fetchBlogs(currentPage);
+  }, [currentPage, fetchBlogs]);
+
+  const setPage = (page: number) => {
+    setCurrentPage(page);
+  };
+
+  return { loading, blogs, totalPages, currentPage, setPage };
 };
 
-const useGetBlogsByAuthor = () => {
+const useGetBlogsByAuthor = (initialPage: number = 1, limit: number = 6) => {
   const [loading, setLoading] = useState<boolean>(true);
   const [authorBlogs, setAuthorBlogs] = useState<Blog[]>([]);
+  const [totalPages, setTotalPages] = useState<number>(0);
+  const [currentPage, setCurrentPage] = useState<number>(initialPage);
 
-  const fetchAuthorBlogs = useCallback(() => {
+  const fetchAuthorBlogs = useCallback((page: number) => {
     setLoading(true);
-    axios
-      .get(`${BACKEND_URL}/api/v1/blog/author/`, {
-        headers: {
-          Authorization: localStorage.getItem("token"),
-        },
-      })
-      .then((res) => {
-        setAuthorBlogs(res.data.blogs);
-        setLoading(false);
-      })
-      .catch((error) => {
-        console.error("Error fetching author blogs:", error);
-        setLoading(false);
-      });
+    try {
+      axios
+        .get(`${BACKEND_URL}/api/v1/blog/author/`, {
+          headers: getAuthHeader(),
+          params: { page, limit },
+        })
+        .then((res) => {
+          setAuthorBlogs(res.data.blogs);
+          setTotalPages(res.data.totalPages);
+        });
+    } catch (error) {
+      console.error("Error fetching author blogs:", error);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   useEffect(() => {
-    fetchAuthorBlogs();
-  }, [fetchAuthorBlogs]);
+    fetchAuthorBlogs(currentPage);
+  }, [currentPage, fetchAuthorBlogs]);
 
-  return { loading, authorBlogs, refetchAuthorBlogs: fetchAuthorBlogs };
+  const setPage = (page: number) => {
+    setCurrentPage(page);
+  };
+
+  return {
+    loading,
+    authorBlogs,
+    totalPages,
+    currentPage,
+    setPage,
+    fetchAuthorBlogs,
+  };
 };
 
 const useDeleteBlog = () => {

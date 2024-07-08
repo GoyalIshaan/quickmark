@@ -117,14 +117,21 @@ blogRouter.put("/", async (c) => {
   }
 });
 
-// @desc Get all Blogs
+// @desc Get all Blogs with Pagination
 // @route GET /api/v1/blog/bulk
 // @access Public
 blogRouter.get("/bulk", async (c) => {
   const prisma = new PrismaClient({
     datasourceUrl: c.env.DATABASE_URL,
   }).$extends(withAccelerate());
+
+  const page = parseInt(c.req.query("page") || "1") || 1;
+  const limit = parseInt(c.req.query("limit") || "10") || 10;
+  const skip = (page - 1) * 10;
+
   const blogs = await prisma.blog.findMany({
+    skip: skip,
+    take: limit,
     select: {
       id: true,
       title: true,
@@ -140,7 +147,11 @@ blogRouter.get("/bulk", async (c) => {
       createdAt: "desc",
     },
   });
-  return c.json({ blogs });
+
+  const totalBlogs = await prisma.blog.count();
+  const totalPages = Math.ceil(totalBlogs / limit);
+
+  return c.json({ blogs, totalPages });
 });
 
 // @desc Get a Blog
@@ -178,7 +189,7 @@ blogRouter.get("/:id", async (c) => {
   }
 });
 
-// @desc Get Your Own Blogs
+// @desc Get Your Own Blogs with Pagination
 // @route GET /api/v1/blog/author/
 // @access Private
 blogRouter.get("/author/", async (c) => {
@@ -187,13 +198,22 @@ blogRouter.get("/author/", async (c) => {
   }).$extends(withAccelerate());
 
   const authorId = c.get("userId");
+  const page = parseInt(c.req.query("page") || "1");
+  const limit = parseInt(c.req.query("limit") || "6");
+  const skip = (page - 1) * limit;
+
   try {
     const blogs = await prisma.blog.findMany({
-      where: {
-        authorId,
-      },
+      where: { authorId },
+      skip: skip,
+      take: limit,
+      orderBy: { createdAt: "desc" },
     });
-    return c.json({ blogs });
+
+    const totalBlogs = await prisma.blog.count({ where: { authorId } });
+    const totalPages = Math.ceil(totalBlogs / limit);
+
+    return c.json({ blogs, totalPages, currentPage: page });
   } catch (error) {
     c.status(403);
     return c.json({ message: "Couldn't get the blog" });
@@ -209,14 +229,21 @@ blogRouter.get("/author/:authorId/", async (c) => {
   }).$extends(withAccelerate());
 
   const authorId = c.req.param("authorId");
+  const page = parseInt(c.req.query("page") || "1") || 1;
+  const limit = parseInt(c.req.query("limit") || "10") || 10;
+  const skip = (page - 1) * 10;
 
   try {
     const blogs = await prisma.blog.findMany({
+      skip: skip,
+      take: limit,
       where: {
         authorId,
       },
     });
-    return c.json({ blogs });
+    const totalBlogs = await blogs.length;
+    const totalPages = Math.ceil(totalBlogs / limit);
+    return c.json({ blogs, totalPages });
   } catch (error) {
     c.status(403);
     return c.json({ message: "Couldn't get the blog" });

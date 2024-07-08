@@ -10,7 +10,8 @@ interface UserBlogCardProps {
   content: string;
   createdAt: string;
   id: string;
-  onDelete: () => void;
+  pageNumber: number;
+  onDelete: (page: number) => Promise<void>;
 }
 
 const UserBlogCard: React.FC<UserBlogCardProps> = ({
@@ -18,6 +19,7 @@ const UserBlogCard: React.FC<UserBlogCardProps> = ({
   content,
   createdAt,
   id,
+  pageNumber,
   onDelete,
 }) => {
   const { deleteBlog } = useDeleteBlog();
@@ -32,7 +34,7 @@ const UserBlogCard: React.FC<UserBlogCardProps> = ({
   const handleDelete = async () => {
     try {
       await deleteBlog(id);
-      onDelete();
+      await onDelete(pageNumber);
     } catch (error) {
       console.error("Error deleting blog:", error);
     }

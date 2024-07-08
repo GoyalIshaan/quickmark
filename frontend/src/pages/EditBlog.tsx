@@ -1,16 +1,21 @@
-import React, { useState, useRef, useEffect } from "react";
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import React, { useState, useEffect } from "react";
 import { useForm, SubmitHandler } from "react-hook-form";
-import { PlusCircle, AlertCircle } from "lucide-react";
+import { PlusCircle, Save, AlertTriangle } from "lucide-react";
 import TextareaAutosize from "react-textarea-autosize";
-import ContentEditable, { ContentEditableEvent } from "react-contenteditable";
 import { useNavigate, useParams } from "react-router-dom";
 import { useUpdateBlogPost } from "../hooks/useBlogs";
 import useBlog from "../hooks/useBlog";
 import BlogPostSkeleton from "../components/BlogPostSkeleton";
+import ReactQuill from "react-quill";
+import "react-quill/dist/quill.snow.css";
+import katex from "katex";
+import "katex/dist/katex.min.css";
+
+window.katex = katex;
 
 interface IFormInput {
   title: string;
-  content: string;
 }
 
 const EditBlogPost: React.FC = () => {
@@ -20,12 +25,9 @@ const EditBlogPost: React.FC = () => {
   const { updateBlog } = useUpdateBlogPost();
   const [isUpdating, setIsUpdating] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [fadeOut, setFadeOut] = useState(false);
-
   const { register, handleSubmit, watch, setValue } = useForm<IFormInput>();
   const titleValue = watch("title");
   const [content, setContent] = useState("");
-  const contentEditableRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (blog && !blogLoading) {
@@ -34,22 +36,11 @@ const EditBlogPost: React.FC = () => {
     }
   }, [blog, blogLoading, setValue]);
 
-  useEffect(() => {
-    if (errorMessage) {
-      setFadeOut(false);
-    }
-  }, [errorMessage]);
-
   const onSubmit: SubmitHandler<IFormInput> = async (data) => {
     setErrorMessage(null);
-    setFadeOut(false);
     if (!blogId) return;
-    if (!data.title.trim()) {
-      setErrorMessage("Title cannot be empty");
-      return;
-    }
-    if (!content.trim()) {
-      setErrorMessage("Content cannot be empty");
+    if (!data.title.trim() || !content.trim()) {
+      setErrorMessage("Title and content cannot be empty");
       return;
     }
     setIsUpdating(true);
@@ -64,15 +55,20 @@ const EditBlogPost: React.FC = () => {
     }
   };
 
-  const handleContentChange = (evt: ContentEditableEvent) => {
-    setContent(evt.target.value);
-    if (errorMessage) {
-      setFadeOut(true);
-      setTimeout(() => {
-        setErrorMessage(null);
-        setFadeOut(false);
-      }, 300); // Duration of the fade-out animation
-    }
+  const modules = {
+    toolbar: [
+      [{ header: [1, 2, false] }],
+      ["bold", "italic", "underline", "strike", "blockquote"],
+      [
+        { list: "ordered" },
+        { list: "bullet" },
+        { indent: "-1" },
+        { indent: "+1" },
+      ],
+      ["link", "image"],
+      ["clean"],
+      ["formula"],
+    ],
   };
 
   if (blogLoading) {
@@ -84,67 +80,67 @@ const EditBlogPost: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen flex flex-col relative">
-      <div className="absolute top-4 left-4">
-        <div className="flex items-center bg-green-500 text-white px-3 py-1 rounded-full text-sm font-medium">
-          <div className="w-2 h-2 bg-white rounded-full mr-2 animate-ping"></div>
-          Editing Blog
+    <div className="min-h-screen bg-gray-50 flex flex-col">
+      <div className="flex-grow max-w-4xl mx-auto w-full px-4 py-8 md:py-12">
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center bg-green-500 text-white px-3 py-1 rounded-full text-sm font-medium">
+            <div className="w-2 h-2 bg-white rounded-full mr-2 animate-ping"></div>
+            Editing
+          </div>
         </div>
-      </div>
-      <div className="flex-grow max-w-3xl mx-auto w-full px-4 py-16">
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-          <div className="flex items-center relative h-16">
+
+        <form
+          onSubmit={handleSubmit(onSubmit)}
+          className="bg-white shadow-md rounded-lg p-6"
+        >
+          <div className="relative mb-6 group">
             <div
-              className={`absolute left-0 transition-all duration-300 ease-in-out ${
+              className={`absolute left-0 top-1/2 transform -translate-y-1/2 transition-all duration-300 ease-in-out ${
                 titleValue
                   ? "opacity-0 -translate-x-4"
                   : "opacity-100 translate-x-0"
               }`}
             >
-              <PlusCircle className="w-8 h-8 text-gray-300" />
+              <PlusCircle className="w-6 h-6 text-gray-400 group-hover:text-gray-600" />
             </div>
             <TextareaAutosize
-              {...register("title")}
+              {...register("title", { required: "Title is required" })}
               placeholder="Title"
-              className={`text-4xl font-bold focus:outline-none w-full absolute transition-all duration-300 ease-in-out resize-none overflow-hidden ${
-                titleValue ? "left-0" : "left-12"
-              }`}
-              maxRows={2}
+              className={`text-3xl font-bold w-full resize-none overflow-hidden bg-transparent focus:outline-none transition-all duration-300 ease-in-out ${
+                titleValue ? "pl-0" : "pl-8"
+              } placeholder-gray-400`}
+              maxRows={3}
             />
           </div>
-          <div className="relative">
-            <ContentEditable
-              innerRef={contentEditableRef}
-              html={content}
-              onChange={handleContentChange}
-              className="w-full min-h-[24rem] text-xl focus:outline-none empty:before:content-[attr(data-placeholder)] empty:before:text-gray-400"
-              data-placeholder="Tell your story..."
-            />
-          </div>
-          <div className="pb-16 relative">
-            {errorMessage && (
-              <div
-                className={`bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-4 rounded transition-opacity duration-300 ${
-                  fadeOut ? "opacity-0" : "opacity-100"
-                }`}
-              >
-                <div className="flex items-center">
-                  <AlertCircle className="w-5 h-5 mr-2" />
-                  <p>{errorMessage}</p>
-                </div>
-              </div>
-            )}
+
+          <ReactQuill
+            theme="snow"
+            value={content}
+            onChange={setContent}
+            modules={modules}
+            placeholder="Tell your story..."
+            className="h-[calc(100vh-350px)] mb-6"
+          />
+
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center mt-4">
+            <div></div>
             <button
               type="submit"
-              className={`bg-gray-900 text-white px-6 py-2 rounded-full hover:bg-gray-800 transition duration-300 text-lg font-medium transform ${
-                isUpdating ? "opacity-50 cursor-not-allowed" : "translate-y-0"
-              } ${errorMessage ? "mt-4 translate-y-0" : "mt-0 -translate-y-2"}`}
               disabled={isUpdating}
+              className="w-full z-10 mt-14 md:mt-8 md:w-auto px-4 py-2 bg-black text-white rounded-md hover:bg-gray-800 transition-colors flex items-center justify-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {isUpdating ? "Updating..." : "Update"}
+              <Save size={20} />
+              <span>{isUpdating ? "Updating..." : "Update"}</span>
             </button>
           </div>
         </form>
+
+        {errorMessage && (
+          <div className="mt-4 p-4 bg-red-50 border-l-4 border-red-500 rounded-r-lg flex items-center">
+            <AlertTriangle className="mr-2 text-red-500" size={20} />
+            <span className="text-red-700">{errorMessage}</span>
+          </div>
+        )}
       </div>
     </div>
   );

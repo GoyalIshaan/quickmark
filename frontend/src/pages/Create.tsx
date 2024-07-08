@@ -1,14 +1,19 @@
-import React, { useState, useRef, useEffect } from "react";
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import React, { useState, useEffect } from "react";
 import { useForm, SubmitHandler } from "react-hook-form";
-import { PlusCircle } from "lucide-react";
+import { PlusCircle, Save, AlertTriangle } from "lucide-react";
 import TextareaAutosize from "react-textarea-autosize";
-import ContentEditable, { ContentEditableEvent } from "react-contenteditable";
 import { useNavigate } from "react-router-dom";
 import usePostBlog from "../hooks/usePostBlog";
+import ReactQuill from "react-quill";
+import "react-quill/dist/quill.snow.css";
+import katex from "katex";
+import "katex/dist/katex.min.css";
+
+window.katex = katex;
 
 interface IFormInput {
   title: string;
-  content: string;
 }
 
 const CreateBlogPost: React.FC = () => {
@@ -16,14 +21,16 @@ const CreateBlogPost: React.FC = () => {
   const titleValue = watch("title");
   const [content, setContent] = useState("");
   const [showDraftPrompt, setShowDraftPrompt] = useState(false);
-  const contentEditableRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
   const { loading, postBlog, error } = usePostBlog();
 
   useEffect(() => {
     const draft = localStorage.getItem("draft");
     if (draft) {
-      setShowDraftPrompt(true);
+      const { title, content } = JSON.parse(draft);
+      if (title || content) {
+        setShowDraftPrompt(true);
+      }
     }
   }, []);
 
@@ -38,8 +45,12 @@ const CreateBlogPost: React.FC = () => {
   };
 
   const discardDraft = () => {
-    localStorage.removeItem("draft");
+    clearDraft();
     setShowDraftPrompt(false);
+  };
+
+  const clearDraft = () => {
+    localStorage.removeItem("draft");
   };
 
   useEffect(() => {
@@ -52,15 +63,12 @@ const CreateBlogPost: React.FC = () => {
       }
     };
 
-    const handleBeforeUnload = (event: BeforeUnloadEvent) => {
-      saveDraft();
-      event.preventDefault();
-    };
+    const debouncedSaveDraft = debounce(saveDraft, 1000);
 
-    window.addEventListener("beforeunload", handleBeforeUnload);
+    debouncedSaveDraft();
+
     return () => {
-      window.removeEventListener("beforeunload", handleBeforeUnload);
-      saveDraft();
+      debouncedSaveDraft.cancel();
     };
   }, [titleValue, content]);
 
@@ -68,88 +76,135 @@ const CreateBlogPost: React.FC = () => {
     try {
       const blogID = await postBlog(data.title, content);
       if (blogID) {
-        localStorage.removeItem("draft");
+        clearDraft();
         navigate(`/blogs/${blogID}`);
       }
     } catch (err) {
       console.error("Error posting blog:", err);
-      // The error is already set in the usePostBlog hook, so we don't need to do anything here
     }
   };
 
-  const handleContentChange = (evt: ContentEditableEvent) => {
-    setContent(evt.target.value);
+  const modules = {
+    toolbar: [
+      [{ header: [1, 2, false] }],
+      ["bold", "italic", "underline", "strike", "blockquote"],
+      [
+        { list: "ordered" },
+        { list: "bullet" },
+        { indent: "-1" },
+        { indent: "+1" },
+      ],
+      ["link", "image"],
+      ["clean"],
+      ["formula"],
+    ],
   };
 
   return (
-    <div className="min-h-screen flex flex-col">
-      <div className="flex-grow max-w-3xl mx-auto w-full px-4 py-16">
+    <div className="min-h-screen bg-gray-50 flex flex-col">
+      <div className="flex-grow max-w-4xl mx-auto w-full px-4 py-8 md:py-12">
         {showDraftPrompt && (
-          <div className="mb-6 p-8 bg-slate-50 border border-slate-100 rounded-lg text-black">
-            <p className="mb-4">
-              You have an unsaved draft. Would you like to load it?
-            </p>
-            <div className="mt-2 flex gap-4">
-              <button
-                onClick={loadDraft}
-                className="bg-white text-black px-4 py-2 rounded"
-              >
-                Load Draft
-              </button>
-              <button
-                onClick={discardDraft}
-                className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600"
-              >
-                Discard Draft
-              </button>
+          <div className="mb-6 p-4 bg-yellow-50 border-l-4 border-yellow-400 rounded-r-lg">
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between">
+              <div className="flex items-center mb-3 md:mb-0">
+                <AlertTriangle className="mr-2 text-yellow-400" size={20} />
+                <span className="text-yellow-700">
+                  You have an unsaved draft. Would you like to load it?
+                </span>
+              </div>
+              <div className="flex space-x-2">
+                <button
+                  onClick={loadDraft}
+                  className="px-3 py-1 bg-yellow-500 text-white rounded hover:bg-yellow-600 transition-colors"
+                >
+                  Load
+                </button>
+                <button
+                  onClick={discardDraft}
+                  className="px-3 py-1 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 transition-colors"
+                >
+                  Discard
+                </button>
+              </div>
             </div>
           </div>
         )}
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-          <div className="flex items-center relative h-16">
+
+        <form
+          onSubmit={handleSubmit(onSubmit)}
+          className="bg-white shadow-md rounded-lg p-4 md:p-6"
+        >
+          <div className="relative mb-6 group">
             <div
-              className={`absolute left-0 transition-all duration-300 ease-in-out ${
+              className={`absolute left-0 top-1/2 transform -translate-y-1/2 transition-all duration-300 ease-in-out ${
                 titleValue
                   ? "opacity-0 -translate-x-4"
                   : "opacity-100 translate-x-0"
               }`}
             >
-              <PlusCircle className="w-8 h-8 text-gray-300" />
+              <PlusCircle className="w-6 h-6 text-gray-400 group-hover:text-gray-600" />
             </div>
             <TextareaAutosize
-              {...register("title")}
+              {...register("title", { required: "Title is required" })}
               placeholder="Title"
-              className={`text-4xl font-bold focus:outline-none w-full absolute transition-all duration-300 ease-in-out resize-none overflow-hidden ${
-                titleValue ? "left-0" : "left-12"
-              }`}
-              maxRows={2}
+              className={`text-2xl md:text-3xl font-bold w-full resize-none overflow-hidden bg-transparent focus:outline-none transition-all duration-300 ease-in-out ${
+                titleValue ? "pl-0" : "pl-8"
+              } placeholder-gray-400`}
+              maxRows={3}
             />
           </div>
-          <div className="relative">
-            <ContentEditable
-              innerRef={contentEditableRef}
-              html={content}
-              onChange={handleContentChange}
-              className="w-full min-h-[24rem] text-xl focus:outline-none empty:before:content-[attr(data-placeholder)] empty:before:text-gray-400"
-              data-placeholder="Tell your story..."
-            />
-          </div>
-          <div className="pb-16">
+
+          <ReactQuill
+            theme="snow"
+            value={content}
+            onChange={setContent}
+            modules={modules}
+            placeholder="Tell your story..."
+            className="h-[calc(100vh-350px)] mb-6"
+          />
+
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center mt-4">
+            <div></div>
             <button
               type="submit"
-              className={`bg-gray-900 text-white px-6 py-2 rounded-full hover:bg-gray-800 transition duration-300 text-lg font-medium ${
-                loading ? "opacity-50 cursor-not-allowed" : ""
-              }`}
               disabled={loading}
+              className="w-full z-10 mt-14 md:mt-8 md:w-auto px-4 py-2 bg-black text-white rounded-md hover:bg-gray-800 transition-colors flex items-center justify-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {loading ? "Publishing..." : "Publish"}
+              <Save size={20} />
+              <span>{loading ? "Publishing..." : "Publish"}</span>
             </button>
-            {error && <p className="mt-4 text-red-500 text-sm">{error}</p>}
           </div>
         </form>
+
+        {error && (
+          <div className="mt-4 p-4 bg-red-50 border-l-4 border-red-500 rounded-r-lg flex items-center">
+            <AlertTriangle className="mr-2 text-red-500" size={20} />
+            <span className="text-red-700">{error}</span>
+          </div>
+        )}
       </div>
     </div>
   );
 };
+
+// Debounce function (same as before)
+function debounce<F extends (...args: any[]) => any>(func: F, wait: number) {
+  let timeout: ReturnType<typeof setTimeout> | null = null;
+
+  const debouncedFunc = (...args: Parameters<F>) => {
+    if (timeout !== null) {
+      clearTimeout(timeout);
+    }
+    timeout = setTimeout(() => func(...args), wait);
+  };
+
+  debouncedFunc.cancel = () => {
+    if (timeout !== null) {
+      clearTimeout(timeout);
+    }
+  };
+
+  return debouncedFunc;
+}
 
 export default CreateBlogPost;

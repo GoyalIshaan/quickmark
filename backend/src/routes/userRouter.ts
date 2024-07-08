@@ -346,7 +346,7 @@ userRouter.get("/following/", async (c) => {
   }
 });
 
-// @desc Get all saved
+// @desc Get all saved blogs
 // @route GET /api/v1/user/save
 // @access Private
 userRouter.get("/save/", async (c) => {

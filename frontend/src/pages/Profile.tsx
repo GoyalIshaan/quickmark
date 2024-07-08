@@ -30,15 +30,34 @@ const ProfilePage: React.FC = () => {
   const [showSavedBlogs, setShowSavedBlogs] = useState(false);
   const [showFollowersModal, setShowFollowersModal] = useState(false);
   const [showFollowingModal, setShowFollowingModal] = useState(false);
+  const [isPageLoading, setIsPageLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const navigate = useNavigate();
+
   const token = localStorage.getItem("token");
-  const decoded: { id: string } = token ? jwtDecode(token) : { id: "" };
-  const currentUserId = decoded.id as string;
+  let currentUserId = "";
+  try {
+    if (token) {
+      const decoded: { id: string } = jwtDecode(token);
+      currentUserId = decoded.id;
+    } else {
+      throw new Error("No token found");
+    }
+  } catch (error) {
+    console.error("Invalid token:", error);
+    navigate("/signin");
+  }
+
   const { user } = useGetUser({ userId: currentUserId });
   const { updateUser } = useUpdateUser();
   const {
     loading: blogsLoading,
     authorBlogs,
-    refetchAuthorBlogs,
+    totalPages,
+    currentPage,
+    setPage,
+    fetchAuthorBlogs: refetchAuthorBlogs,
   } = useGetBlogsByAuthor();
   const {
     loading: savedLoading,
@@ -46,36 +65,11 @@ const ProfilePage: React.FC = () => {
     refetchSavedBlogs,
   } = useGetSavedBlogs();
 
-  const navigate = useNavigate();
-
-  const handleLogout = () => {
-    localStorage.removeItem("token");
-    navigate("/signin");
-  };
-
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    visible: {
-      opacity: 1,
-      transition: {
-        staggerChildren: 0.1,
-      },
-    },
-  };
-
-  const itemVariants = {
-    hidden: { y: 20, opacity: 0 },
-    visible: {
-      y: 0,
-      opacity: 1,
-    },
-  };
-
   const { register, handleSubmit, watch, reset } = useForm<FormData>({
     defaultValues: {
-      name: "Loading...",
-      email: "Loading...",
-      password: "Loading...",
+      name: "",
+      email: "",
+      password: "",
     },
   });
 
@@ -84,12 +78,32 @@ const ProfilePage: React.FC = () => {
       reset({
         name: user.name || "",
         email: user.email || "",
-        password: user.password || "",
       });
     }
   }, [user, reset]);
 
   const watchedFields = watch();
+
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    navigate("/signin");
+  };
+
+  const handlePreviousPage = async () => {
+    if (currentPage > 1) {
+      setIsPageLoading(true);
+      await setPage(currentPage - 1);
+      setIsPageLoading(false);
+    }
+  };
+
+  const handleNextPage = async () => {
+    if (currentPage < totalPages) {
+      setIsPageLoading(true);
+      await setPage(currentPage + 1);
+      setIsPageLoading(false);
+    }
+  };
 
   const handleToggleLock = () => {
     if (!isLocked) {
@@ -102,19 +116,43 @@ const ProfilePage: React.FC = () => {
     setIsLocked(!isLocked);
   };
 
-  const onSubmit = (data: FormData) => {
+  const onSubmit = async (data: FormData) => {
     setIsLocked(true);
-    console.log("Saving profile:", data);
-    updateUser({ userId: currentUserId, ...data });
+    try {
+      await updateUser({
+        userId: currentUserId,
+        email: data.email,
+        name: data.name,
+        password: data.password,
+      });
+    } catch (error) {
+      console.error("Error updating user:", error);
+      setError("Failed to update profile. Please try again.");
+    }
+  };
+
+  const handleDeleteBlog = async (page: number) => {
+    setIsPageLoading(true);
+    await refetchAuthorBlogs(page);
+    if (authorBlogs.length === 0 && currentPage > 1) {
+      await setPage(currentPage - 1);
+    } else if (authorBlogs.length === 0) {
+      // If it's the first page and no blogs left, just refetch to show the "No blogs" message
+      await refetchAuthorBlogs(page);
+    }
+    setIsPageLoading(false);
   };
 
   return (
     <div className="min-h-screen bg-black text-white flex flex-col items-center p-4">
       <div className="w-full max-w-6xl">
+        {error && (
+          <div className="bg-red-500 text-white p-4 rounded mb-4">{error}</div>
+        )}
         <div className="flex flex-col md:flex-row gap-8 items-start mt-16 mb-8">
-          {/* Left side - Input fields */}
+          {/* Profile form */}
           <motion.form
-            className="w-full md:w-1/2 space-y-6"
+            className="w-full mt-0 md:mt-20 md:w-1/2 space-y-6"
             initial={{ opacity: 0, x: -50 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.5 }}
@@ -159,7 +197,6 @@ const ProfilePage: React.FC = () => {
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                   className="bg-white text-black px-4 py-2 rounded flex items-center gap-2 transition-colors duration-300 hover:bg-gray-200"
-                  disabled={isLocked}
                 >
                   <FaSave />
                   Save
@@ -168,7 +205,7 @@ const ProfilePage: React.FC = () => {
             </div>
           </motion.form>
 
-          {/* Right side - Profile Card */}
+          {/* Profile Card */}
           <motion.div
             className="w-full md:w-1/2 mt-16 md:block"
             initial={{ opacity: 0, x: 50 }}
@@ -226,6 +263,7 @@ const ProfilePage: React.FC = () => {
             </div>
           </motion.div>
         </div>
+
         {/* Blogs section */}
         <div className="w-full mt-8">
           <div className="flex justify-center gap-8 mb-4">
@@ -256,27 +294,27 @@ const ProfilePage: React.FC = () => {
                 exit={{ opacity: 0, y: -20 }}
                 transition={{ duration: 0.3 }}
               >
-                {blogsLoading ? (
+                {blogsLoading || isPageLoading ? (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {[...Array(4)].map((_, index) => (
+                    {[...Array(6)].map((_, index) => (
                       <UserBlogCardSkeleton key={index} />
                     ))}
                   </div>
                 ) : authorBlogs && authorBlogs.length > 0 ? (
                   <motion.div
-                    variants={containerVariants}
                     initial="hidden"
                     animate="visible"
                     className="grid grid-cols-1 md:grid-cols-2 gap-4 my-10"
                   >
                     {authorBlogs.map((blog) => (
-                      <motion.div key={blog.id} variants={itemVariants}>
+                      <motion.div key={blog.id}>
                         <UserBlogCard
                           id={blog.id}
                           title={blog.title}
                           content={blog.content}
                           createdAt={blog.createdAt}
-                          onDelete={refetchAuthorBlogs}
+                          pageNumber={currentPage}
+                          onDelete={handleDeleteBlog}
                         />
                       </motion.div>
                     ))}
@@ -294,6 +332,35 @@ const ProfilePage: React.FC = () => {
                     >
                       Write Your First Blog
                     </Link>
+                  </div>
+                )}
+                {authorBlogs && authorBlogs.length > 0 && (
+                  <div className="flex justify-between items-center my-10">
+                    <button
+                      onClick={handlePreviousPage}
+                      disabled={currentPage === 1 || isPageLoading}
+                      className={`px-4 py-2 rounded-md font-semibold transition-colors duration-300 ${
+                        currentPage === 1
+                          ? "bg-black text-white border-2 border-white hover:bg-gray-800 cursor-not-allowed"
+                          : "bg-white text-black"
+                      }`}
+                    >
+                      Previous
+                    </button>
+                    <span className="text-lg font-medium text-white">
+                      Page {currentPage} of {totalPages}
+                    </span>
+                    <button
+                      onClick={handleNextPage}
+                      disabled={currentPage === totalPages || isPageLoading}
+                      className={`px-4 py-2 rounded-md font-semibold transition-colors duration-300 ${
+                        currentPage === totalPages
+                          ? "bg-black text-white border-2 border-white hover:bg-gray-800 cursor-not-allowed"
+                          : "bg-white text-black "
+                      }`}
+                    >
+                      Next
+                    </button>
                   </div>
                 )}
               </motion.div>

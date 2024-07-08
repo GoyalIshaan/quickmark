@@ -10,6 +10,12 @@ import { AnimatePresence } from "framer-motion";
 import ShareButton from "../components/ShareButton";
 import LikeButton from "../components/LikeButton";
 import SaveButton from "../components/SaveButton";
+import DOMPurify from "dompurify";
+import katex from "katex";
+import "katex/dist/katex.min.css";
+
+// Added katex to window object for formula rendering
+window.katex = katex;
 
 const BlogPost: React.FC = () => {
   const { id = "" } = useParams<{ id: string }>();
@@ -59,13 +65,18 @@ const BlogPost: React.FC = () => {
     blog.author.name
   )}&background=random&length=1`;
 
+  // Sanitize the blog content
+  const sanitizedContent = DOMPurify.sanitize(blog.content);
+
   return (
     <div className="flex-1 max-w-6xl mx-auto px-4 py-8 min-h-screen">
       <div className="flex flex-col md:flex-row justify-between gap-8">
         <div className="md:w-2/3">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4">
-            <h1 className="text-4xl font-bold mb-2 sm:mb-0">{blog.title}</h1>
-            <div className="flex items-center space-x-3">
+          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between mb-4">
+            <h1 className="text-4xl font-bold mb-2 sm:mb-0 break-words sm:max-w-[70%]">
+              {blog.title}
+            </h1>
+            <div className="flex flex-wrap items-center gap-2 sm:gap-3 mt-2 sm:mt-0">
               <LikeButton blogId={id} />
               <SaveButton blogId={id} />
               <ShareButton blogId={id} />
@@ -75,7 +86,10 @@ const BlogPost: React.FC = () => {
             Posted on {formatDate(blog.createdAt)}
             <span className="ml-2 cursor-pointer">🔍</span>
           </div>
-          <div className="prose max-w-none mb-8">{blog.content}</div>
+          <div
+            className="prose max-w-none mb-8"
+            dangerouslySetInnerHTML={{ __html: sanitizedContent }}
+          />
           <hr className="my-8 border-gray-300" />
           <h2 className="text-3xl font-bold mb-4">Comments</h2>
           <AnimatePresence>

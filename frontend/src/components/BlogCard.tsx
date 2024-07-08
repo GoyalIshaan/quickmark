@@ -21,11 +21,21 @@ const BlogCard: React.FC<BlogCardProps> = ({
   publishedAt,
 }) => {
   const maxCharacters = 150;
-  const truncateContent = (text: string, limit: number) => {
-    if (text.length <= limit) return text;
-    return text.slice(0, limit).trim() + "...";
+
+  const stripHtmlTags = (html: string) => {
+    const tmp = document.createElement("DIV");
+    tmp.innerHTML = html;
+    return tmp.textContent || tmp.innerText || "";
   };
+
+  const truncateContent = (text: string, limit: number) => {
+    const strippedText = stripHtmlTags(text);
+    if (strippedText.length <= limit) return strippedText;
+    return strippedText.slice(0, limit).trim() + "...";
+  };
+
   const truncatedContent = truncateContent(content, maxCharacters);
+
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     return date.toLocaleDateString("en-US", {
@@ -34,6 +44,7 @@ const BlogCard: React.FC<BlogCardProps> = ({
       day: "numeric",
     });
   };
+
   const formattedDate = formatDate(publishedAt);
 
   return (
