@@ -78,6 +78,7 @@ const ProfilePage: React.FC = () => {
       reset({
         name: user.name || "",
         email: user.email || "",
+        password: user.password || "",
       });
     }
   }, [user, reset]);
