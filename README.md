@@ -1,10 +1,8 @@
-# Modern Blogging Platform
+# Quickmark
 
 ## 🚀 Overview
 
 This project is a full-stack, feature-rich blogging platform built with modern web technologies. It provides a seamless experience for content creators and readers alike, with a focus on performance, user experience, and scalability.
-
-![Project Screenshot](https://placeholder-image.com/screenshot.png)
 
 ## 🌟 Features
 
@@ -37,6 +35,7 @@ This project is a full-stack, feature-rich blogging platform built with modern w
 - **Postgress SQL**: As the database for storing user data and blog posts.
 - **Prisma ORM**: For object modeling and managing database schemas.
 - **JSON Web Tokens (JWT)**: For secure authentication.
+- **Zod** - For runtime input validation
 
 ### Testing and Quality Assurance
 
@@ -88,21 +87,25 @@ npm install
 
 # Set up environment variables in wrangler.toml
 cp wrangler.toml
-# Edit wrangler.toml with your configuration
+
+# Edit wrangler.toml with your database prisma accelerate connection link and JWT secret key
 
 # Run the development server
+npm run dev
+
+# Install frontend dependencies
+cd ..
+
+cd frontend
+
+npm install
+
 npm run dev
 
 # Build for production
 npm run build
 
-# Run production server
-npm start
 ```
-
-## 📚 API Documentation
-
-Comprehensive API documentation is available at `/api-docs` when running the server locally, or at `https://api.yourblogplatform.com/docs` for the live version.
 
 ## 🤝 Contributing
 
